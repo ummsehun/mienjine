@@ -9,6 +9,8 @@ clap = { version = "4.5.32", features = ["derive"] }
 crossterm = "0.29.0"
 glam = "0.30.0"
 gltf = { version = "1.4.1", features = ["import", "utils", "names"] }
+ratatui = "0.28.1"
+rodio = "0.20.1"
 tobj = "4.0.3"
 
 [dev-dependencies]

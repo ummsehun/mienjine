@@ -10,6 +10,24 @@ pub enum RenderMode {
     Braille,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum CellAspectMode {
+    Auto,
+    Manual,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ContrastProfile {
+    Adaptive,
+    Fixed,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum SyncSpeedMode {
+    AutoDurationFit,
+    Realtime1x,
+}
+
 #[derive(Debug, Clone)]
 pub struct RenderConfig {
     pub fov_deg: f32,
@@ -18,6 +36,8 @@ pub struct RenderConfig {
     pub mode: RenderMode,
     pub charset: String,
     pub cell_aspect: f32,
+    pub cell_aspect_mode: CellAspectMode,
+    pub cell_aspect_trim: f32,
     pub fps_cap: u32,
     pub ambient: f32,
     pub diffuse_strength: f32,
@@ -26,6 +46,12 @@ pub struct RenderConfig {
     pub rim_strength: f32,
     pub rim_power: f32,
     pub fog_strength: f32,
+    pub contrast_profile: ContrastProfile,
+    pub contrast_floor: f32,
+    pub contrast_gamma: f32,
+    pub fog_scale: f32,
+    pub triangle_stride: usize,
+    pub min_triangle_area_px2: f32,
 }
 
 impl Default for RenderConfig {
@@ -37,6 +63,8 @@ impl Default for RenderConfig {
             mode: RenderMode::Ascii,
             charset: DEFAULT_CHARSET.to_owned(),
             cell_aspect: 0.5,
+            cell_aspect_mode: CellAspectMode::Auto,
+            cell_aspect_trim: 1.0,
             fps_cap: 30,
             ambient: 0.12,
             diffuse_strength: 0.95,
@@ -45,7 +73,40 @@ impl Default for RenderConfig {
             rim_strength: 0.22,
             rim_power: 2.0,
             fog_strength: 0.20,
+            contrast_profile: ContrastProfile::Adaptive,
+            contrast_floor: 0.10,
+            contrast_gamma: 0.90,
+            fog_scale: 1.0,
+            triangle_stride: 1,
+            min_triangle_area_px2: 0.0,
         }
+    }
+}
+
+pub fn estimate_cell_aspect_from_window(
+    columns: u16,
+    rows: u16,
+    width_px: u16,
+    height_px: u16,
+) -> Option<f32> {
+    if columns == 0 || rows == 0 || width_px == 0 || height_px == 0 {
+        return None;
+    }
+    let cell_w = (width_px as f32) / (columns as f32);
+    let cell_h = (height_px as f32) / (rows as f32);
+    if cell_h <= f32::EPSILON {
+        return None;
+    }
+    Some(cell_w / cell_h)
+}
+
+pub fn resolve_cell_aspect(config: &RenderConfig, detected: Option<f32>) -> f32 {
+    let trim = config.cell_aspect_trim.clamp(0.70, 1.30);
+    match config.cell_aspect_mode {
+        CellAspectMode::Manual => config.cell_aspect.clamp(0.30, 1.20),
+        CellAspectMode::Auto => detected
+            .map(|value| (value * trim).clamp(0.30, 1.20))
+            .unwrap_or_else(|| config.cell_aspect.clamp(0.30, 1.20)),
     }
 }
 
@@ -243,5 +304,44 @@ pub fn cube_scene() -> SceneCpu {
             skin_index: None,
         }],
         animations: Vec::new(),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn estimate_cell_aspect_formula_matches_expected_ratio() {
+        let aspect = estimate_cell_aspect_from_window(120, 40, 1920, 1200)
+            .expect("aspect should be available");
+        let expected = (1920.0 / 120.0) / (1200.0 / 40.0);
+        assert!((aspect - expected).abs() < 1e-6);
+    }
+
+    #[test]
+    fn resolve_cell_aspect_auto_uses_detected_value_and_trim() {
+        let mut cfg = RenderConfig {
+            cell_aspect_mode: CellAspectMode::Auto,
+            cell_aspect_trim: 1.10,
+            ..RenderConfig::default()
+        };
+        let value = resolve_cell_aspect(&cfg, Some(0.82));
+        assert!((value - 0.902).abs() < 1e-3);
+
+        cfg.cell_aspect_trim = 2.0;
+        let clamped = resolve_cell_aspect(&cfg, Some(1.0));
+        assert!((clamped - 1.2).abs() < 1e-6);
+    }
+
+    #[test]
+    fn resolve_cell_aspect_manual_ignores_detected() {
+        let cfg = RenderConfig {
+            cell_aspect_mode: CellAspectMode::Manual,
+            cell_aspect: 0.58,
+            ..RenderConfig::default()
+        };
+        let value = resolve_cell_aspect(&cfg, Some(0.91));
+        assert!((value - 0.58).abs() < 1e-6);
     }
 }

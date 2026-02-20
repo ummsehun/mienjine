@@ -2,7 +2,7 @@ use std::path::PathBuf;
 
 use clap::{Parser, Subcommand, ValueEnum};
 
-use crate::scene::{DEFAULT_CHARSET, RenderMode};
+use crate::scene::{CellAspectMode, ContrastProfile, DEFAULT_CHARSET, RenderMode, SyncSpeedMode};
 
 #[derive(Debug, Parser)]
 #[command(name = "terminal-miku3d")]
@@ -14,12 +14,73 @@ pub struct Cli {
 
 #[derive(Debug, Subcommand)]
 pub enum Commands {
+    /// Start with setup TUI (model/music/mode/fps) and run selected GLB scene.
+    Start(StartArgs),
     /// Run interactive terminal rendering for cube/OBJ/GLB scenes.
     Run(RunArgs),
     /// Benchmark a scene pipeline without terminal presentation.
     Bench(BenchArgs),
     /// Inspect GLB/glTF scene structure.
     Inspect(InspectArgs),
+}
+
+#[derive(Debug, clap::Args)]
+pub struct StartArgs {
+    /// Directory to scan for .glb/.gltf files.
+    #[arg(long, default_value = "assets/glb")]
+    pub dir: PathBuf,
+    /// Directory to scan for .mp3/.wav files.
+    #[arg(long, default_value = "assets/music")]
+    pub music_dir: PathBuf,
+    /// Animation selector by name or index. Defaults to first clip if available.
+    #[arg(long)]
+    pub anim: Option<String>,
+    #[arg(long, value_enum, default_value_t = ModeArg::Ascii)]
+    pub mode: ModeArg,
+    #[arg(long, default_value_t = 30)]
+    pub fps_cap: u32,
+    #[arg(long, default_value_t = 0.5)]
+    pub cell_aspect: f32,
+    #[arg(long, value_enum)]
+    pub cell_aspect_mode: Option<CellAspectModeArg>,
+    #[arg(long)]
+    pub cell_aspect_trim: Option<f32>,
+    #[arg(long, value_enum)]
+    pub contrast_profile: Option<ContrastProfileArg>,
+    #[arg(long)]
+    pub sync_offset_ms: Option<i32>,
+    #[arg(long, value_enum)]
+    pub sync_speed_mode: Option<SyncSpeedModeArg>,
+    #[arg(long, default_value_t = 60.0)]
+    pub fov_deg: f32,
+    #[arg(long, default_value_t = 0.1)]
+    pub near: f32,
+    #[arg(long, default_value_t = 100.0)]
+    pub far: f32,
+    #[arg(long, default_value_t = 0.12)]
+    pub ambient: f32,
+    #[arg(long, default_value_t = 0.95)]
+    pub diffuse_strength: f32,
+    #[arg(long, default_value_t = 0.25)]
+    pub specular_strength: f32,
+    #[arg(long, default_value_t = 24.0)]
+    pub specular_power: f32,
+    #[arg(long, default_value_t = 0.22)]
+    pub rim_strength: f32,
+    #[arg(long, default_value_t = 2.0)]
+    pub rim_power: f32,
+    #[arg(long, default_value_t = 0.20)]
+    pub fog_strength: f32,
+    #[arg(long, default_value_t = 0.0)]
+    pub orbit_speed: f32,
+    #[arg(long, default_value_t = 0.0)]
+    pub orbit_radius: f32,
+    #[arg(long, default_value_t = 0.0)]
+    pub camera_height: f32,
+    #[arg(long, default_value_t = 0.0)]
+    pub look_at_y: f32,
+    #[arg(long, default_value = DEFAULT_CHARSET)]
+    pub charset: String,
 }
 
 #[derive(Debug, clap::Args)]
@@ -41,6 +102,16 @@ pub struct RunArgs {
     pub fps_cap: u32,
     #[arg(long, default_value_t = 0.5)]
     pub cell_aspect: f32,
+    #[arg(long, value_enum)]
+    pub cell_aspect_mode: Option<CellAspectModeArg>,
+    #[arg(long)]
+    pub cell_aspect_trim: Option<f32>,
+    #[arg(long, value_enum)]
+    pub contrast_profile: Option<ContrastProfileArg>,
+    #[arg(long)]
+    pub sync_offset_ms: Option<i32>,
+    #[arg(long, value_enum)]
+    pub sync_speed_mode: Option<SyncSpeedModeArg>,
     #[arg(long, default_value_t = 60.0)]
     pub fov_deg: f32,
     #[arg(long, default_value_t = 0.1)]
@@ -89,6 +160,12 @@ pub struct BenchArgs {
     pub mode: ModeArg,
     #[arg(long, default_value_t = 0.5)]
     pub cell_aspect: f32,
+    #[arg(long, value_enum)]
+    pub cell_aspect_mode: Option<CellAspectModeArg>,
+    #[arg(long)]
+    pub cell_aspect_trim: Option<f32>,
+    #[arg(long, value_enum)]
+    pub contrast_profile: Option<ContrastProfileArg>,
     #[arg(long, default_value_t = 120)]
     pub width: u16,
     #[arg(long, default_value_t = 40)]
@@ -145,11 +222,56 @@ pub enum ModeArg {
     Braille,
 }
 
+#[derive(Debug, Clone, Copy, ValueEnum)]
+pub enum CellAspectModeArg {
+    Auto,
+    Manual,
+}
+
+#[derive(Debug, Clone, Copy, ValueEnum)]
+pub enum ContrastProfileArg {
+    Adaptive,
+    Fixed,
+}
+
+#[derive(Debug, Clone, Copy, ValueEnum)]
+pub enum SyncSpeedModeArg {
+    Auto,
+    Realtime,
+}
+
 impl From<ModeArg> for RenderMode {
     fn from(value: ModeArg) -> Self {
         match value {
             ModeArg::Ascii => RenderMode::Ascii,
             ModeArg::Braille => RenderMode::Braille,
+        }
+    }
+}
+
+impl From<CellAspectModeArg> for CellAspectMode {
+    fn from(value: CellAspectModeArg) -> Self {
+        match value {
+            CellAspectModeArg::Auto => CellAspectMode::Auto,
+            CellAspectModeArg::Manual => CellAspectMode::Manual,
+        }
+    }
+}
+
+impl From<ContrastProfileArg> for ContrastProfile {
+    fn from(value: ContrastProfileArg) -> Self {
+        match value {
+            ContrastProfileArg::Adaptive => ContrastProfile::Adaptive,
+            ContrastProfileArg::Fixed => ContrastProfile::Fixed,
+        }
+    }
+}
+
+impl From<SyncSpeedModeArg> for SyncSpeedMode {
+    fn from(value: SyncSpeedModeArg) -> Self {
+        match value {
+            SyncSpeedModeArg::Auto => SyncSpeedMode::AutoDurationFit,
+            SyncSpeedModeArg::Realtime => SyncSpeedMode::Realtime1x,
         }
     }
 }
