@@ -1,4 +1,4 @@
-use glam::{Mat4, Quat, Vec3};
+use glam::{Mat4, Quat, Vec2, Vec3};
 
 use crate::animation::AnimationClip;
 
@@ -8,6 +8,75 @@ pub const DEFAULT_CHARSET: &str = " .:-=+*#%@";
 pub enum RenderMode {
     Ascii,
     Braille,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum PerfProfile {
+    Balanced,
+    Cinematic,
+    Smooth,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum DetailProfile {
+    Perf,
+    Balanced,
+    Ultra,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum RenderBackend {
+    Cpu,
+    Gpu,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum CenterLockMode {
+    Root,
+    Mixed,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ColorMode {
+    Mono,
+    Ansi,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum BrailleProfile {
+    Safe,
+    Normal,
+    Dense,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ThemeStyle {
+    Theater,
+    Neon,
+    Holo,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum AudioReactiveMode {
+    Off,
+    On,
+    High,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum CinematicCameraMode {
+    Off,
+    On,
+    Aggressive,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum CameraFocusMode {
+    Auto,
+    Full,
+    Upper,
+    Face,
+    Hands,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -28,12 +97,37 @@ pub enum SyncSpeedMode {
     Realtime1x,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum TextureSamplingMode {
+    Nearest,
+    Bilinear,
+}
+
 #[derive(Debug, Clone)]
 pub struct RenderConfig {
     pub fov_deg: f32,
     pub near: f32,
     pub far: f32,
     pub mode: RenderMode,
+    pub perf_profile: PerfProfile,
+    pub detail_profile: DetailProfile,
+    pub backend: RenderBackend,
+    pub color_mode: ColorMode,
+    pub braille_profile: BrailleProfile,
+    pub theme_style: ThemeStyle,
+    pub audio_reactive: AudioReactiveMode,
+    pub cinematic_camera: CinematicCameraMode,
+    pub camera_focus: CameraFocusMode,
+    pub reactive_gain: f32,
+    pub reactive_pulse: f32,
+    pub exposure_bias: f32,
+    pub center_lock: bool,
+    pub center_lock_mode: CenterLockMode,
+    pub stage_level: u8,
+    pub stage_reactive: bool,
+    pub material_color: bool,
+    pub texture_sampling: TextureSamplingMode,
+    pub braille_aspect_compensation: f32,
     pub charset: String,
     pub cell_aspect: f32,
     pub cell_aspect_mode: CellAspectMode,
@@ -61,6 +155,25 @@ impl Default for RenderConfig {
             near: 0.1,
             far: 100.0,
             mode: RenderMode::Ascii,
+            perf_profile: PerfProfile::Balanced,
+            detail_profile: DetailProfile::Balanced,
+            backend: RenderBackend::Cpu,
+            color_mode: ColorMode::Mono,
+            braille_profile: BrailleProfile::Safe,
+            theme_style: ThemeStyle::Theater,
+            audio_reactive: AudioReactiveMode::On,
+            cinematic_camera: CinematicCameraMode::On,
+            camera_focus: CameraFocusMode::Auto,
+            reactive_gain: 0.35,
+            reactive_pulse: 0.0,
+            exposure_bias: 0.0,
+            center_lock: true,
+            center_lock_mode: CenterLockMode::Root,
+            stage_level: 2,
+            stage_reactive: true,
+            material_color: true,
+            texture_sampling: TextureSamplingMode::Nearest,
+            braille_aspect_compensation: 0.90,
             charset: DEFAULT_CHARSET.to_owned(),
             cell_aspect: 0.5,
             cell_aspect_mode: CellAspectMode::Auto,
@@ -111,12 +224,22 @@ pub fn resolve_cell_aspect(config: &RenderConfig, detected: Option<f32>) -> f32 
 }
 
 #[derive(Debug, Clone)]
+pub struct MorphTargetCpu {
+    pub position_deltas: Vec<Vec3>,
+    pub normal_deltas: Vec<Vec3>,
+}
+
+#[derive(Debug, Clone)]
 pub struct MeshCpu {
     pub positions: Vec<Vec3>,
     pub normals: Vec<Vec3>,
+    pub uv0: Option<Vec<Vec2>>,
+    pub colors_rgba: Option<Vec<[f32; 4]>>,
+    pub material_index: Option<usize>,
     pub indices: Vec<[u32; 3]>,
     pub joints4: Option<Vec<[u16; 4]>>,
     pub weights4: Option<Vec<[f32; 4]>>,
+    pub morph_targets: Vec<MorphTargetCpu>,
 }
 
 impl MeshCpu {
@@ -133,6 +256,28 @@ impl MeshCpu {
 pub struct SkinCpu {
     pub joints: Vec<usize>,
     pub inverse_bind_mats: Vec<Mat4>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum MaterialAlphaMode {
+    Opaque,
+    Mask,
+    Blend,
+}
+
+#[derive(Debug, Clone)]
+pub struct MaterialCpu {
+    pub base_color_factor: [f32; 4],
+    pub base_color_texture: Option<usize>,
+    pub emissive_factor: [f32; 3],
+    pub alpha_mode: MaterialAlphaMode,
+}
+
+#[derive(Debug, Clone)]
+pub struct TextureCpu {
+    pub width: u32,
+    pub height: u32,
+    pub rgba8: Vec<u8>,
 }
 
 #[derive(Debug, Clone)]
@@ -168,20 +313,24 @@ impl From<&Node> for NodePose {
     }
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 pub struct MeshInstance {
     pub mesh_index: usize,
     pub node_index: usize,
     pub skin_index: Option<usize>,
+    pub default_morph_weights: Vec<f32>,
 }
 
 #[derive(Debug, Clone, Default)]
 pub struct SceneCpu {
     pub meshes: Vec<MeshCpu>,
+    pub materials: Vec<MaterialCpu>,
+    pub textures: Vec<TextureCpu>,
     pub skins: Vec<SkinCpu>,
     pub nodes: Vec<Node>,
     pub mesh_instances: Vec<MeshInstance>,
     pub animations: Vec<AnimationClip>,
+    pub root_center_node: Option<usize>,
 }
 
 impl SceneCpu {
@@ -280,9 +429,13 @@ pub fn cube_scene() -> SceneCpu {
     let mesh = MeshCpu {
         positions,
         normals,
+        uv0: None,
+        colors_rgba: None,
+        material_index: None,
         indices,
         joints4: None,
         weights4: None,
+        morph_targets: Vec::new(),
     };
 
     let node = Node {
@@ -296,14 +449,18 @@ pub fn cube_scene() -> SceneCpu {
 
     SceneCpu {
         meshes: vec![mesh],
+        materials: Vec::new(),
+        textures: Vec::new(),
         skins: Vec::new(),
         nodes: vec![node],
         mesh_instances: vec![MeshInstance {
             mesh_index: 0,
             node_index: 0,
             skin_index: None,
+            default_morph_weights: Vec::new(),
         }],
         animations: Vec::new(),
+        root_center_node: Some(0),
     }
 }
 

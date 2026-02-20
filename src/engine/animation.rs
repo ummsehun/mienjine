@@ -14,12 +14,17 @@ pub enum ChannelTarget {
     Translation,
     Rotation,
     Scale,
+    MorphWeights,
 }
 
 #[derive(Debug, Clone)]
 pub enum ChannelValues {
     Vec3(Vec<Vec3>),
     Quat(Vec<Quat>),
+    MorphWeights {
+        values: Vec<f32>,
+        weights_per_key: usize,
+    },
 }
 
 #[derive(Debug, Clone)]
@@ -41,6 +46,15 @@ pub struct AnimationClip {
 
 impl AnimationClip {
     pub fn sample_into(&self, time: f32, poses: &mut [NodePose]) {
+        self.sample_into_with_morph(time, poses, &mut []);
+    }
+
+    pub fn sample_into_with_morph(
+        &self,
+        time: f32,
+        poses: &mut [NodePose],
+        morph_weights: &mut [Vec<f32>],
+    ) {
         if self.channels.is_empty() || self.duration <= f32::EPSILON {
             return;
         }
@@ -56,28 +70,122 @@ impl AnimationClip {
                 continue;
             }
             let (i0, i1, t) = sample_segment(&channel.inputs, sampled_time);
+            let dt = if i0 == i1 {
+                0.0
+            } else {
+                (channel.inputs[i1] - channel.inputs[i0]).max(0.0)
+            };
             match (&channel.target, &channel.outputs) {
                 (ChannelTarget::Translation, ChannelValues::Vec3(values)) => {
-                    let v0 = vec3_at(values, i0, channel.interpolation);
-                    let v1 = vec3_at(values, i1, channel.interpolation);
-                    let value = interpolate_vec3(v0, v1, channel.interpolation, t);
+                    let value = match channel.interpolation {
+                        Interpolation::CubicSpline => interpolate_vec3_cubic(values, i0, i1, t, dt),
+                        _ => {
+                            let v0 = vec3_at(values, i0, channel.interpolation);
+                            let v1 = vec3_at(values, i1, channel.interpolation);
+                            interpolate_vec3(v0, v1, channel.interpolation, t)
+                        }
+                    };
                     poses[channel.node_index].translation = value;
                 }
                 (ChannelTarget::Scale, ChannelValues::Vec3(values)) => {
-                    let v0 = vec3_at(values, i0, channel.interpolation);
-                    let v1 = vec3_at(values, i1, channel.interpolation);
-                    let value = interpolate_vec3(v0, v1, channel.interpolation, t);
+                    let value = match channel.interpolation {
+                        Interpolation::CubicSpline => interpolate_vec3_cubic(values, i0, i1, t, dt),
+                        _ => {
+                            let v0 = vec3_at(values, i0, channel.interpolation);
+                            let v1 = vec3_at(values, i1, channel.interpolation);
+                            interpolate_vec3(v0, v1, channel.interpolation, t)
+                        }
+                    };
                     poses[channel.node_index].scale = value;
                 }
                 (ChannelTarget::Rotation, ChannelValues::Quat(values)) => {
-                    let q0 = quat_at(values, i0, channel.interpolation);
-                    let q1 = quat_at(values, i1, channel.interpolation);
-                    let value = interpolate_quat(q0, q1, channel.interpolation, t);
+                    let value = match channel.interpolation {
+                        Interpolation::CubicSpline => interpolate_quat_cubic(values, i0, i1, t, dt),
+                        _ => {
+                            let q0 = quat_at(values, i0, channel.interpolation);
+                            let q1 = quat_at(values, i1, channel.interpolation);
+                            interpolate_quat(q0, q1, channel.interpolation, t)
+                        }
+                    };
                     poses[channel.node_index].rotation = value;
+                }
+                (
+                    ChannelTarget::MorphWeights,
+                    ChannelValues::MorphWeights {
+                        values,
+                        weights_per_key,
+                    },
+                ) => {
+                    if *weights_per_key == 0 || channel.node_index >= morph_weights.len() {
+                        continue;
+                    }
+                    let dst = &mut morph_weights[channel.node_index];
+                    if dst.len() < *weights_per_key {
+                        dst.resize(*weights_per_key, 0.0);
+                    }
+                    match channel.interpolation {
+                        Interpolation::CubicSpline => {
+                            let key_stride = weights_per_key.saturating_mul(3);
+                            let in1 = i1.saturating_mul(key_stride);
+                            let val1 = in1.saturating_add(*weights_per_key);
+                            let in0 = i0.saturating_mul(key_stride);
+                            let val0 = in0.saturating_add(*weights_per_key);
+                            let out0 = in0.saturating_add(weights_per_key.saturating_mul(2));
+                            if val0 + *weights_per_key > values.len()
+                                || val1 + *weights_per_key > values.len()
+                                || out0 + *weights_per_key > values.len()
+                                || in1 + *weights_per_key > values.len()
+                            {
+                                continue;
+                            }
+                            for (offset, slot) in dst.iter_mut().take(*weights_per_key).enumerate()
+                            {
+                                let p0 = values[val0 + offset];
+                                let p1 = values[val1 + offset];
+                                let m0 = values[out0 + offset] * dt;
+                                let m1 = values[in1 + offset] * dt;
+                                *slot = hermite_scalar(p0, p1, m0, m1, t);
+                            }
+                        }
+                        _ => {
+                            let base0 =
+                                morph_base_index(*weights_per_key, i0, channel.interpolation);
+                            let base1 =
+                                morph_base_index(*weights_per_key, i1, channel.interpolation);
+                            if base0 + *weights_per_key > values.len()
+                                || base1 + *weights_per_key > values.len()
+                            {
+                                continue;
+                            }
+                            for (offset, slot) in dst.iter_mut().take(*weights_per_key).enumerate()
+                            {
+                                let w0 = values[base0 + offset];
+                                let w1 = values[base1 + offset];
+                                *slot = match channel.interpolation {
+                                    Interpolation::Step => w0,
+                                    Interpolation::Linear => w0 + (w1 - w0) * t,
+                                    Interpolation::CubicSpline => w0,
+                                };
+                            }
+                        }
+                    }
                 }
                 _ => {}
             }
         }
+    }
+}
+
+fn morph_base_index(
+    weights_per_key: usize,
+    key_index: usize,
+    interpolation: Interpolation,
+) -> usize {
+    match interpolation {
+        Interpolation::CubicSpline => key_index
+            .saturating_mul(weights_per_key.saturating_mul(3))
+            .saturating_add(weights_per_key),
+        Interpolation::Step | Interpolation::Linear => key_index.saturating_mul(weights_per_key),
     }
 }
 
@@ -134,6 +242,65 @@ fn interpolate_quat(q0: Quat, q1: Quat, interpolation: Interpolation, t: f32) ->
         Interpolation::Step => q0,
         Interpolation::Linear | Interpolation::CubicSpline => q0.slerp(q1, t),
     }
+}
+
+fn interpolate_vec3_cubic(values: &[Vec3], i0: usize, i1: usize, t: f32, dt: f32) -> Vec3 {
+    let p0 = vec3_at(values, i0, Interpolation::CubicSpline);
+    let p1 = vec3_at(values, i1, Interpolation::CubicSpline);
+    let out0 = values
+        .get(i0.saturating_mul(3).saturating_add(2))
+        .copied()
+        .unwrap_or(Vec3::ZERO)
+        * dt;
+    let in1 = values
+        .get(i1.saturating_mul(3))
+        .copied()
+        .unwrap_or(Vec3::ZERO)
+        * dt;
+    hermite_vec3(p0, p1, out0, in1, t)
+}
+
+fn interpolate_quat_cubic(values: &[Quat], i0: usize, i1: usize, t: f32, dt: f32) -> Quat {
+    let p0 = quat_at(values, i0, Interpolation::CubicSpline);
+    let p1 = quat_at(values, i1, Interpolation::CubicSpline);
+    let out0 = values
+        .get(i0.saturating_mul(3).saturating_add(2))
+        .copied()
+        .unwrap_or(Quat::IDENTITY);
+    let in1 = values
+        .get(i1.saturating_mul(3))
+        .copied()
+        .unwrap_or(Quat::IDENTITY);
+    let p0v = p0.to_array();
+    let p1v = p1.to_array();
+    let m0v = out0.to_array();
+    let m1v = in1.to_array();
+    let x = hermite_scalar(p0v[0], p1v[0], m0v[0] * dt, m1v[0] * dt, t);
+    let y = hermite_scalar(p0v[1], p1v[1], m0v[1] * dt, m1v[1] * dt, t);
+    let z = hermite_scalar(p0v[2], p1v[2], m0v[2] * dt, m1v[2] * dt, t);
+    let w = hermite_scalar(p0v[3], p1v[3], m0v[3] * dt, m1v[3] * dt, t);
+    let q = Quat::from_xyzw(x, y, z, w);
+    if q.length_squared() <= f32::EPSILON {
+        Quat::IDENTITY
+    } else {
+        q.normalize()
+    }
+}
+
+fn hermite_vec3(p0: Vec3, p1: Vec3, m0: Vec3, m1: Vec3, t: f32) -> Vec3 {
+    let h00 = 2.0 * t * t * t - 3.0 * t * t + 1.0;
+    let h10 = t * t * t - 2.0 * t * t + t;
+    let h01 = -2.0 * t * t * t + 3.0 * t * t;
+    let h11 = t * t * t - t * t;
+    p0 * h00 + m0 * h10 + p1 * h01 + m1 * h11
+}
+
+fn hermite_scalar(p0: f32, p1: f32, m0: f32, m1: f32, t: f32) -> f32 {
+    let h00 = 2.0 * t * t * t - 3.0 * t * t + 1.0;
+    let h10 = t * t * t - 2.0 * t * t + t;
+    let h01 = -2.0 * t * t * t + 3.0 * t * t;
+    let h11 = t * t * t - t * t;
+    p0 * h00 + m0 * h10 + p1 * h01 + m1 * h11
 }
 
 pub fn default_poses(nodes: &[Node]) -> Vec<NodePose> {
@@ -290,5 +457,38 @@ mod tests {
         let p = globals[1].transform_point3(Vec3::ZERO);
         assert!((p.x - 1.0).abs() < 1e-5);
         assert!((p.y - 2.0).abs() < 1e-5);
+    }
+
+    #[test]
+    fn morph_weights_linear_sampling() {
+        let nodes = vec![Node {
+            name: Some("morph".to_owned()),
+            parent: None,
+            children: Vec::new(),
+            base_translation: Vec3::ZERO,
+            base_rotation: Quat::IDENTITY,
+            base_scale: Vec3::ONE,
+        }];
+        let mut poses = default_poses(&nodes);
+        let mut morph_weights = vec![vec![0.0, 0.0]];
+        let clip = AnimationClip {
+            name: Some("face".to_owned()),
+            channels: vec![AnimationChannel {
+                node_index: 0,
+                target: ChannelTarget::MorphWeights,
+                interpolation: Interpolation::Linear,
+                inputs: vec![0.0, 1.0],
+                outputs: ChannelValues::MorphWeights {
+                    values: vec![0.0, 0.0, 1.0, 0.5],
+                    weights_per_key: 2,
+                },
+            }],
+            duration: 1.0,
+            looping: true,
+        };
+
+        clip.sample_into_with_morph(0.5, &mut poses, &mut morph_weights);
+        assert!((morph_weights[0][0] - 0.5).abs() < 1e-5);
+        assert!((morph_weights[0][1] - 0.25).abs() < 1e-5);
     }
 }

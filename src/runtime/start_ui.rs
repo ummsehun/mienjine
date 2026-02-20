@@ -21,15 +21,17 @@ use crate::{
     loader,
     runtime::{config::UiLanguage, terminal::RatatuiSession},
     scene::{
-        CellAspectMode, ContrastProfile, RenderConfig, RenderMode, SyncSpeedMode,
+        AudioReactiveMode, BrailleProfile, CameraFocusMode, CellAspectMode, CenterLockMode,
+        CinematicCameraMode, ColorMode, ContrastProfile, DetailProfile, PerfProfile, RenderBackend,
+        RenderConfig, RenderMode, SyncSpeedMode, TextureSamplingMode, ThemeStyle,
         estimate_cell_aspect_from_window, resolve_cell_aspect,
     },
 };
 
 const MIN_WIDTH: u16 = 60;
 const MIN_HEIGHT: u16 = 18;
-const START_FPS_OPTIONS: [u32; 7] = [15, 20, 24, 30, 40, 50, 60];
-const RENDER_FIELD_COUNT: usize = 7;
+const START_FPS_OPTIONS: [u32; 9] = [0, 15, 20, 24, 30, 40, 60, 90, 120];
+const RENDER_FIELD_COUNT: usize = 22;
 const SYNC_OFFSET_STEP_MS: i32 = 10;
 const SYNC_OFFSET_LIMIT_MS: i32 = 5_000;
 
@@ -71,6 +73,23 @@ pub enum StartWizardEvent {
 #[derive(Debug, Clone, Copy)]
 pub struct StartWizardDefaults {
     pub mode: RenderMode,
+    pub perf_profile: PerfProfile,
+    pub detail_profile: DetailProfile,
+    pub backend: RenderBackend,
+    pub center_lock: bool,
+    pub center_lock_mode: CenterLockMode,
+    pub camera_focus: CameraFocusMode,
+    pub material_color: bool,
+    pub texture_sampling: TextureSamplingMode,
+    pub braille_aspect_compensation: f32,
+    pub stage_level: u8,
+    pub stage_reactive: bool,
+    pub color_mode: ColorMode,
+    pub braille_profile: BrailleProfile,
+    pub theme_style: ThemeStyle,
+    pub audio_reactive: AudioReactiveMode,
+    pub cinematic_camera: CinematicCameraMode,
+    pub reactive_gain: f32,
     pub fps_cap: u32,
     pub cell_aspect: f32,
     pub cell_aspect_mode: CellAspectMode,
@@ -85,6 +104,23 @@ impl Default for StartWizardDefaults {
     fn default() -> Self {
         Self {
             mode: RenderMode::Ascii,
+            perf_profile: PerfProfile::Balanced,
+            detail_profile: DetailProfile::Balanced,
+            backend: RenderBackend::Cpu,
+            center_lock: true,
+            center_lock_mode: CenterLockMode::Root,
+            camera_focus: CameraFocusMode::Auto,
+            material_color: true,
+            texture_sampling: TextureSamplingMode::Nearest,
+            braille_aspect_compensation: 0.90,
+            stage_level: 2,
+            stage_reactive: true,
+            color_mode: ColorMode::Mono,
+            braille_profile: BrailleProfile::Safe,
+            theme_style: ThemeStyle::Theater,
+            audio_reactive: AudioReactiveMode::On,
+            cinematic_camera: CinematicCameraMode::On,
+            reactive_gain: 0.35,
             fps_cap: 30,
             cell_aspect: 0.5,
             cell_aspect_mode: CellAspectMode::Auto,
@@ -102,6 +138,23 @@ pub struct StartSelection {
     pub glb_path: PathBuf,
     pub music_path: Option<PathBuf>,
     pub mode: RenderMode,
+    pub perf_profile: PerfProfile,
+    pub detail_profile: DetailProfile,
+    pub backend: RenderBackend,
+    pub center_lock: bool,
+    pub center_lock_mode: CenterLockMode,
+    pub camera_focus: CameraFocusMode,
+    pub material_color: bool,
+    pub texture_sampling: TextureSamplingMode,
+    pub braille_aspect_compensation: f32,
+    pub stage_level: u8,
+    pub stage_reactive: bool,
+    pub color_mode: ColorMode,
+    pub braille_profile: BrailleProfile,
+    pub theme_style: ThemeStyle,
+    pub audio_reactive: AudioReactiveMode,
+    pub cinematic_camera: CinematicCameraMode,
+    pub reactive_gain: f32,
     pub fps_cap: u32,
     pub cell_aspect: f32,
     pub cell_aspect_mode: CellAspectMode,
@@ -147,6 +200,23 @@ struct StartWizardState {
     model_index: usize,
     music_index: usize,
     mode: RenderMode,
+    perf_profile: PerfProfile,
+    detail_profile: DetailProfile,
+    backend: RenderBackend,
+    center_lock: bool,
+    center_lock_mode: CenterLockMode,
+    camera_focus: CameraFocusMode,
+    material_color: bool,
+    texture_sampling: TextureSamplingMode,
+    braille_aspect_compensation: f32,
+    stage_level: u8,
+    stage_reactive: bool,
+    color_mode: ColorMode,
+    braille_profile: BrailleProfile,
+    theme_style: ThemeStyle,
+    audio_reactive: AudioReactiveMode,
+    cinematic_camera: CinematicCameraMode,
+    reactive_gain: f32,
     fps_index: usize,
     manual_cell_aspect: f32,
     cell_aspect_mode: CellAspectMode,
@@ -178,6 +248,23 @@ impl StartWizardState {
             model_index: 0,
             music_index: 0,
             mode: defaults.mode,
+            perf_profile: defaults.perf_profile,
+            detail_profile: defaults.detail_profile,
+            backend: defaults.backend,
+            center_lock: defaults.center_lock,
+            center_lock_mode: defaults.center_lock_mode,
+            camera_focus: defaults.camera_focus,
+            material_color: defaults.material_color,
+            texture_sampling: defaults.texture_sampling,
+            braille_aspect_compensation: defaults.braille_aspect_compensation,
+            stage_level: defaults.stage_level.min(4),
+            stage_reactive: defaults.stage_reactive,
+            color_mode: defaults.color_mode,
+            braille_profile: defaults.braille_profile,
+            theme_style: defaults.theme_style,
+            audio_reactive: defaults.audio_reactive,
+            cinematic_camera: defaults.cinematic_camera,
+            reactive_gain: defaults.reactive_gain.clamp(0.0, 1.0),
             fps_index: closest_u32_index(defaults.fps_cap, &START_FPS_OPTIONS),
             manual_cell_aspect: defaults.cell_aspect,
             cell_aspect_mode: defaults.cell_aspect_mode,
@@ -418,32 +505,121 @@ impl StartWizardState {
                     RenderMode::Braille => RenderMode::Ascii,
                 }
             }
-            1 => cycle_index(&mut self.fps_index, START_FPS_OPTIONS.len(), delta),
+            1 => {
+                self.perf_profile = match self.perf_profile {
+                    PerfProfile::Balanced => PerfProfile::Cinematic,
+                    PerfProfile::Cinematic => PerfProfile::Smooth,
+                    PerfProfile::Smooth => PerfProfile::Balanced,
+                };
+            }
             2 => {
+                self.detail_profile = match self.detail_profile {
+                    DetailProfile::Perf => DetailProfile::Balanced,
+                    DetailProfile::Balanced => DetailProfile::Ultra,
+                    DetailProfile::Ultra => DetailProfile::Perf,
+                };
+            }
+            3 => {
+                self.backend = match self.backend {
+                    RenderBackend::Cpu => RenderBackend::Gpu,
+                    RenderBackend::Gpu => RenderBackend::Cpu,
+                };
+            }
+            4 => {
+                self.center_lock = !self.center_lock;
+            }
+            5 => {
+                self.center_lock_mode = match self.center_lock_mode {
+                    CenterLockMode::Root => CenterLockMode::Mixed,
+                    CenterLockMode::Mixed => CenterLockMode::Root,
+                };
+            }
+            6 => {
+                self.camera_focus = match self.camera_focus {
+                    CameraFocusMode::Auto => CameraFocusMode::Full,
+                    CameraFocusMode::Full => CameraFocusMode::Upper,
+                    CameraFocusMode::Upper => CameraFocusMode::Face,
+                    CameraFocusMode::Face => CameraFocusMode::Hands,
+                    CameraFocusMode::Hands => CameraFocusMode::Auto,
+                };
+            }
+            7 => {
+                self.material_color = !self.material_color;
+            }
+            8 => {
+                self.texture_sampling = match self.texture_sampling {
+                    TextureSamplingMode::Nearest => TextureSamplingMode::Bilinear,
+                    TextureSamplingMode::Bilinear => TextureSamplingMode::Nearest,
+                };
+            }
+            9 => {
+                let value = (self.stage_level as i32 + delta).clamp(0, 4);
+                self.stage_level = value as u8;
+            }
+            10 => {
+                self.color_mode = match self.color_mode {
+                    ColorMode::Mono => ColorMode::Ansi,
+                    ColorMode::Ansi => ColorMode::Mono,
+                };
+            }
+            11 => {
+                self.braille_profile = match self.braille_profile {
+                    BrailleProfile::Safe => BrailleProfile::Normal,
+                    BrailleProfile::Normal => BrailleProfile::Dense,
+                    BrailleProfile::Dense => BrailleProfile::Safe,
+                };
+            }
+            12 => {
+                self.theme_style = match self.theme_style {
+                    ThemeStyle::Theater => ThemeStyle::Neon,
+                    ThemeStyle::Neon => ThemeStyle::Holo,
+                    ThemeStyle::Holo => ThemeStyle::Theater,
+                };
+            }
+            13 => {
+                self.audio_reactive = match self.audio_reactive {
+                    AudioReactiveMode::Off => AudioReactiveMode::On,
+                    AudioReactiveMode::On => AudioReactiveMode::High,
+                    AudioReactiveMode::High => AudioReactiveMode::Off,
+                };
+            }
+            14 => {
+                self.cinematic_camera = match self.cinematic_camera {
+                    CinematicCameraMode::Off => CinematicCameraMode::On,
+                    CinematicCameraMode::On => CinematicCameraMode::Aggressive,
+                    CinematicCameraMode::Aggressive => CinematicCameraMode::Off,
+                };
+            }
+            15 => {
+                let step = 0.05 * (delta as f32);
+                self.reactive_gain = (self.reactive_gain + step).clamp(0.0, 1.0);
+            }
+            16 => cycle_index(&mut self.fps_index, START_FPS_OPTIONS.len(), delta),
+            17 => {
                 self.contrast_profile = match self.contrast_profile {
                     ContrastProfile::Adaptive => ContrastProfile::Fixed,
                     ContrastProfile::Fixed => ContrastProfile::Adaptive,
                 }
             }
-            3 => {
+            18 => {
                 let next = self
                     .sync_offset_ms
                     .saturating_add(delta.saturating_mul(SYNC_OFFSET_STEP_MS));
                 self.sync_offset_ms = next.clamp(-SYNC_OFFSET_LIMIT_MS, SYNC_OFFSET_LIMIT_MS);
             }
-            4 => {
+            19 => {
                 self.sync_speed_mode = match self.sync_speed_mode {
                     SyncSpeedMode::AutoDurationFit => SyncSpeedMode::Realtime1x,
                     SyncSpeedMode::Realtime1x => SyncSpeedMode::AutoDurationFit,
                 }
             }
-            5 => {
+            20 => {
                 self.cell_aspect_mode = match self.cell_aspect_mode {
                     CellAspectMode::Auto => CellAspectMode::Manual,
                     CellAspectMode::Manual => CellAspectMode::Auto,
                 }
             }
-            6 => {
+            21 => {
                 self.font_preset_enabled = !self.font_preset_enabled;
             }
             _ => {}
@@ -456,6 +632,23 @@ impl StartWizardState {
             glb_path,
             music_path: self.selected_music_path().cloned(),
             mode: self.mode,
+            perf_profile: self.perf_profile,
+            detail_profile: self.detail_profile,
+            backend: self.backend,
+            center_lock: self.center_lock,
+            center_lock_mode: self.center_lock_mode,
+            camera_focus: self.camera_focus,
+            material_color: self.material_color,
+            texture_sampling: self.texture_sampling,
+            braille_aspect_compensation: self.braille_aspect_compensation,
+            stage_level: self.stage_level,
+            stage_reactive: self.stage_reactive,
+            color_mode: self.color_mode,
+            braille_profile: self.braille_profile,
+            theme_style: self.theme_style,
+            audio_reactive: self.audio_reactive,
+            cinematic_camera: self.cinematic_camera,
+            reactive_gain: self.reactive_gain,
             fps_cap: START_FPS_OPTIONS[self.fps_index],
             cell_aspect: self.manual_cell_aspect,
             cell_aspect_mode: self.cell_aspect_mode,
@@ -500,6 +693,23 @@ impl StartWizardState {
     fn preview_render_config(&self) -> RenderConfig {
         RenderConfig {
             mode: self.mode,
+            perf_profile: self.perf_profile,
+            detail_profile: self.detail_profile,
+            backend: self.backend,
+            center_lock: self.center_lock,
+            center_lock_mode: self.center_lock_mode,
+            stage_level: self.stage_level,
+            stage_reactive: self.stage_reactive,
+            material_color: self.material_color,
+            texture_sampling: self.texture_sampling,
+            braille_aspect_compensation: self.braille_aspect_compensation,
+            color_mode: self.color_mode,
+            braille_profile: self.braille_profile,
+            theme_style: self.theme_style,
+            audio_reactive: self.audio_reactive,
+            cinematic_camera: self.cinematic_camera,
+            camera_focus: self.camera_focus,
+            reactive_gain: self.reactive_gain,
             cell_aspect: self.manual_cell_aspect,
             cell_aspect_mode: self.cell_aspect_mode,
             cell_aspect_trim: self.cell_aspect_trim,
@@ -740,6 +950,49 @@ fn draw_render_options(
         RenderMode::Ascii => "ASCII",
         RenderMode::Braille => "Braille",
     };
+    let perf_profile = match state.perf_profile {
+        PerfProfile::Balanced => tr(ui_language, "균형 30FPS", "Balanced 30FPS"),
+        PerfProfile::Cinematic => tr(ui_language, "시네마 20FPS", "Cinematic 20FPS"),
+        PerfProfile::Smooth => tr(ui_language, "부드러움 45FPS", "Smooth 45FPS"),
+    };
+    let detail_profile = match state.detail_profile {
+        DetailProfile::Perf => tr(ui_language, "성능", "Perf"),
+        DetailProfile::Balanced => tr(ui_language, "균형", "Balanced"),
+        DetailProfile::Ultra => tr(ui_language, "고품질", "Ultra"),
+    };
+    let backend = match state.backend {
+        RenderBackend::Cpu => "CPU",
+        RenderBackend::Gpu => "GPU",
+    };
+    let center_lock = if state.center_lock {
+        tr(ui_language, "켜짐", "On")
+    } else {
+        tr(ui_language, "꺼짐", "Off")
+    };
+    let color_mode = match state.color_mode {
+        ColorMode::Mono => tr(ui_language, "모노", "Mono"),
+        ColorMode::Ansi => tr(ui_language, "ANSI", "ANSI"),
+    };
+    let braille_profile = match state.braille_profile {
+        BrailleProfile::Safe => tr(ui_language, "안전", "Safe"),
+        BrailleProfile::Normal => tr(ui_language, "표준", "Normal"),
+        BrailleProfile::Dense => tr(ui_language, "고밀도", "Dense"),
+    };
+    let theme = match state.theme_style {
+        ThemeStyle::Theater => tr(ui_language, "극장 실루엣", "Theater Silhouette"),
+        ThemeStyle::Neon => tr(ui_language, "네온 스테이지", "Neon Stage"),
+        ThemeStyle::Holo => tr(ui_language, "홀로그램", "Hologram"),
+    };
+    let audio_reactive = match state.audio_reactive {
+        AudioReactiveMode::Off => tr(ui_language, "끔", "Off"),
+        AudioReactiveMode::On => tr(ui_language, "보통", "On"),
+        AudioReactiveMode::High => tr(ui_language, "강함", "High"),
+    };
+    let cinematic = match state.cinematic_camera {
+        CinematicCameraMode::Off => tr(ui_language, "끔", "Off"),
+        CinematicCameraMode::On => tr(ui_language, "보통", "On"),
+        CinematicCameraMode::Aggressive => tr(ui_language, "강함", "Aggressive"),
+    };
     let contrast = match state.contrast_profile {
         ContrastProfile::Adaptive => tr(ui_language, "적응형", "Adaptive"),
         ContrastProfile::Fixed => tr(ui_language, "고정", "Fixed"),
@@ -757,13 +1010,100 @@ fn draw_render_options(
     } else {
         tr(ui_language, "꺼짐", "Off")
     };
+    let center_lock_mode = match state.center_lock_mode {
+        CenterLockMode::Root => tr(ui_language, "루트", "Root"),
+        CenterLockMode::Mixed => tr(ui_language, "혼합", "Mixed"),
+    };
+    let camera_focus = match state.camera_focus {
+        CameraFocusMode::Auto => tr(ui_language, "자동", "Auto"),
+        CameraFocusMode::Full => tr(ui_language, "전신", "Full"),
+        CameraFocusMode::Upper => tr(ui_language, "상반신", "Upper"),
+        CameraFocusMode::Face => tr(ui_language, "얼굴", "Face"),
+        CameraFocusMode::Hands => tr(ui_language, "손", "Hands"),
+    };
+    let material_color = if state.material_color {
+        tr(ui_language, "켜짐", "On")
+    } else {
+        tr(ui_language, "꺼짐", "Off")
+    };
+    let texture_sampling = match state.texture_sampling {
+        TextureSamplingMode::Nearest => tr(ui_language, "최근접", "Nearest"),
+        TextureSamplingMode::Bilinear => tr(ui_language, "쌍선형", "Bilinear"),
+    };
 
     let rows = [
         format!("{}: {}", tr(ui_language, "모드", "Mode"), mode),
         format!(
             "{}: {}",
+            tr(ui_language, "성능 프로필", "Perf Profile"),
+            perf_profile
+        ),
+        format!(
+            "{}: {}",
+            tr(ui_language, "디테일 프로필", "Detail Profile"),
+            detail_profile
+        ),
+        format!("{}: {}", tr(ui_language, "백엔드", "Backend"), backend),
+        format!(
+            "{}: {}",
+            tr(ui_language, "중앙 고정", "Center Lock"),
+            center_lock
+        ),
+        format!(
+            "{}: {}",
+            tr(ui_language, "중앙 고정 기준", "Center Lock Mode"),
+            center_lock_mode
+        ),
+        format!(
+            "{}: {}",
+            tr(ui_language, "카메라 포커스", "Camera Focus"),
+            camera_focus
+        ),
+        format!(
+            "{}: {}",
+            tr(ui_language, "재질 색상", "Material Color"),
+            material_color
+        ),
+        format!(
+            "{}: {}",
+            tr(ui_language, "텍스처 샘플링", "Texture Sampling"),
+            texture_sampling
+        ),
+        format!(
+            "{}: {}",
+            tr(ui_language, "스테이지 레벨", "Stage Level"),
+            state.stage_level
+        ),
+        format!(
+            "{}: {}",
+            tr(ui_language, "컬러 모드", "Color Mode"),
+            color_mode
+        ),
+        format!(
+            "{}: {}",
+            tr(ui_language, "Braille 프로필", "Braille Profile"),
+            braille_profile
+        ),
+        format!("{}: {}", tr(ui_language, "테마", "Theme"), theme),
+        format!(
+            "{}: {}",
+            tr(ui_language, "음악 반응", "Audio Reactive"),
+            audio_reactive
+        ),
+        format!(
+            "{}: {}",
+            tr(ui_language, "시네마틱 카메라", "Cinematic Camera"),
+            cinematic
+        ),
+        format!(
+            "{}: {:.2}",
+            tr(ui_language, "반응 게인", "Reactive Gain"),
+            state.reactive_gain
+        ),
+        format!(
+            "{}: {}",
             tr(ui_language, "FPS 제한", "FPS Cap"),
-            START_FPS_OPTIONS[state.fps_index]
+            fps_label(START_FPS_OPTIONS[state.fps_index], ui_language)
         ),
         format!(
             "{}: {}",
@@ -898,6 +1238,44 @@ fn draw_confirm_panel(
     let clip_duration = state.selected_clip_duration_secs();
     let audio_duration = state.selected_audio_duration_secs();
     let speed = state.expected_sync_speed();
+    let color_mode = match selection.color_mode {
+        ColorMode::Mono => "Mono",
+        ColorMode::Ansi => "ANSI",
+    };
+    let perf_profile = match selection.perf_profile {
+        PerfProfile::Balanced => "Balanced",
+        PerfProfile::Cinematic => "Cinematic",
+        PerfProfile::Smooth => "Smooth",
+    };
+    let detail_profile = match selection.detail_profile {
+        DetailProfile::Perf => "Perf",
+        DetailProfile::Balanced => "Balanced",
+        DetailProfile::Ultra => "Ultra",
+    };
+    let backend = match selection.backend {
+        RenderBackend::Cpu => "CPU",
+        RenderBackend::Gpu => "GPU",
+    };
+    let braille_profile = match selection.braille_profile {
+        BrailleProfile::Safe => "Safe",
+        BrailleProfile::Normal => "Normal",
+        BrailleProfile::Dense => "Dense",
+    };
+    let theme_style = match selection.theme_style {
+        ThemeStyle::Theater => "Theater",
+        ThemeStyle::Neon => "Neon",
+        ThemeStyle::Holo => "Holo",
+    };
+    let audio_reactive = match selection.audio_reactive {
+        AudioReactiveMode::Off => "Off",
+        AudioReactiveMode::On => "On",
+        AudioReactiveMode::High => "High",
+    };
+    let cinematic_camera = match selection.cinematic_camera {
+        CinematicCameraMode::Off => "Off",
+        CinematicCameraMode::On => "On",
+        CinematicCameraMode::Aggressive => "Aggressive",
+    };
 
     let lines = vec![
         Line::raw(format!(
@@ -916,9 +1294,65 @@ fn draw_confirm_panel(
             selection.mode
         )),
         Line::raw(format!(
+            "{}: {} / {} / {}",
+            tr(
+                ui_language,
+                "프로필/디테일/백엔드",
+                "Profile/Detail/Backend"
+            ),
+            perf_profile,
+            detail_profile,
+            backend
+        )),
+        Line::raw(format!(
+            "{}: {} ({:?}) / {}",
+            tr(ui_language, "중앙고정/스테이지", "Center/Stage"),
+            if selection.center_lock { "On" } else { "Off" },
+            selection.center_lock_mode,
+            selection.stage_level
+        )),
+        Line::raw(format!(
+            "{}: {:?}",
+            tr(ui_language, "카메라 포커스", "Camera Focus"),
+            selection.camera_focus
+        )),
+        Line::raw(format!(
+            "{}: {} / {:?}",
+            tr(ui_language, "재질색상/샘플링", "Material/Sampling"),
+            if selection.material_color {
+                "On"
+            } else {
+                "Off"
+            },
+            selection.texture_sampling
+        )),
+        Line::raw(format!(
+            "{}: {} / {}",
+            tr(ui_language, "컬러/프로필", "Color/Profile"),
+            color_mode,
+            braille_profile
+        )),
+        Line::raw(format!(
+            "{}: {} / {}",
+            tr(ui_language, "테마/반응", "Theme/Reactive"),
+            theme_style,
+            audio_reactive
+        )),
+        Line::raw(format!(
+            "{}: {} ({:.2})",
+            tr(ui_language, "시네마틱/게인", "Cinematic/Gain"),
+            cinematic_camera,
+            selection.reactive_gain
+        )),
+        Line::raw(format!(
             "{}: {}",
             tr(ui_language, "FPS", "FPS"),
-            selection.fps_cap
+            fps_label(selection.fps_cap, ui_language)
+        )),
+        Line::raw(format!(
+            "{}: {:.1}fps",
+            tr(ui_language, "목표 FPS", "Target FPS"),
+            target_fps_for_profile(selection.perf_profile)
         )),
         Line::raw(format!(
             "{}: {}",
@@ -1018,6 +1452,66 @@ fn draw_summary_panel(
             "{}: {:.3}",
             tr(ui_language, "적용 비율", "Applied Aspect"),
             state.effective_cell_aspect()
+        )),
+        Line::raw(format!(
+            "{}: {:?} / {:?}",
+            tr(ui_language, "모드", "Mode"),
+            selection.mode,
+            selection.color_mode
+        )),
+        Line::raw(format!(
+            "{}: {:?} / {:?} / {:?}",
+            tr(
+                ui_language,
+                "프로필/디테일/백엔드",
+                "Profile/Detail/Backend"
+            ),
+            selection.perf_profile,
+            selection.detail_profile,
+            selection.backend
+        )),
+        Line::raw(format!(
+            "{}: {}({:?}) / {}",
+            tr(ui_language, "중앙고정/스테이지", "Center/Stage"),
+            if selection.center_lock { "On" } else { "Off" },
+            selection.center_lock_mode,
+            selection.stage_level
+        )),
+        Line::raw(format!(
+            "{}: {:?}",
+            tr(ui_language, "카메라 포커스", "Camera Focus"),
+            selection.camera_focus
+        )),
+        Line::raw(format!(
+            "{}: {} / {:?}",
+            tr(ui_language, "재질색상/샘플링", "Material/Sampling"),
+            if selection.material_color {
+                "On"
+            } else {
+                "Off"
+            },
+            selection.texture_sampling
+        )),
+        Line::raw(format!(
+            "{}: {:?}",
+            tr(ui_language, "Braille 프로필", "Braille Profile"),
+            selection.braille_profile
+        )),
+        Line::raw(format!(
+            "{}: {:?} / {:?}",
+            tr(ui_language, "테마/반응", "Theme/Reactive"),
+            selection.theme_style,
+            selection.audio_reactive
+        )),
+        Line::raw(format!(
+            "{}: {:?}",
+            tr(ui_language, "시네마틱 카메라", "Cinematic Camera"),
+            selection.cinematic_camera
+        )),
+        Line::raw(format!(
+            "{}: {:.2}",
+            tr(ui_language, "반응 게인", "Reactive Gain"),
+            selection.reactive_gain
         )),
         Line::raw(format!(
             "{}: {}ms",
@@ -1129,6 +1623,14 @@ fn draw_min_size_screen(frame: &mut Frame, state: &StartWizardState, ui_language
     frame.render_widget(para, area);
 }
 
+fn target_fps_for_profile(profile: PerfProfile) -> f32 {
+    match profile {
+        PerfProfile::Balanced => 30.0,
+        PerfProfile::Cinematic => 20.0,
+        PerfProfile::Smooth => 45.0,
+    }
+}
+
 fn tr<'a>(lang: UiLanguage, ko: &'a str, en: &'a str) -> &'a str {
     match lang {
         UiLanguage::Ko => ko,
@@ -1176,6 +1678,14 @@ fn duration_label(seconds: Option<f32>) -> String {
     seconds
         .map(|v| format!("{v:.3}s"))
         .unwrap_or_else(|| "n/a".to_owned())
+}
+
+fn fps_label(fps: u32, lang: UiLanguage) -> String {
+    if fps == 0 {
+        tr(lang, "무제한", "Unlimited").to_owned()
+    } else {
+        fps.to_string()
+    }
 }
 
 fn detect_terminal_cell_aspect() -> Option<f32> {

@@ -2,11 +2,18 @@ use std::path::PathBuf;
 
 use clap::{Parser, Subcommand, ValueEnum};
 
-use crate::scene::{CellAspectMode, ContrastProfile, DEFAULT_CHARSET, RenderMode, SyncSpeedMode};
+use crate::scene::{
+    AudioReactiveMode, BrailleProfile, CameraFocusMode, CellAspectMode, CenterLockMode,
+    CinematicCameraMode, ColorMode, ContrastProfile, DEFAULT_CHARSET, DetailProfile, PerfProfile,
+    RenderBackend, RenderMode, SyncSpeedMode, TextureSamplingMode, ThemeStyle,
+};
 
 #[derive(Debug, Parser)]
 #[command(name = "terminal-miku3d")]
-#[command(about = "CPU-only terminal renderer for ASCII/Braille 3D scenes", long_about = None)]
+#[command(
+    about = "Terminal renderer for ASCII/Braille 3D scenes (CPU + optional GPU experimental)",
+    long_about = None
+)]
 pub struct Cli {
     #[command(subcommand)]
     pub command: Commands,
@@ -37,6 +44,38 @@ pub struct StartArgs {
     pub anim: Option<String>,
     #[arg(long, value_enum, default_value_t = ModeArg::Ascii)]
     pub mode: ModeArg,
+    #[arg(long, value_enum)]
+    pub color_mode: Option<ColorModeArg>,
+    #[arg(long, value_enum)]
+    pub braille_profile: Option<BrailleProfileArg>,
+    #[arg(long, value_enum)]
+    pub theme: Option<ThemeArg>,
+    #[arg(long, value_enum)]
+    pub audio_reactive: Option<AudioReactiveArg>,
+    #[arg(long, value_enum)]
+    pub cinematic_camera: Option<CinematicCameraArg>,
+    #[arg(long)]
+    pub reactive_gain: Option<f32>,
+    #[arg(long, value_enum)]
+    pub perf_profile: Option<PerfProfileArg>,
+    #[arg(long, value_enum)]
+    pub detail_profile: Option<DetailProfileArg>,
+    #[arg(long, value_enum)]
+    pub backend: Option<BackendArg>,
+    #[arg(long, value_enum)]
+    pub center_lock: Option<ToggleArg>,
+    #[arg(long, value_enum)]
+    pub center_lock_mode: Option<CenterLockModeArg>,
+    #[arg(long, value_enum)]
+    pub camera_focus: Option<CameraFocusArg>,
+    #[arg(long, value_enum)]
+    pub material_color: Option<ToggleArg>,
+    #[arg(long, value_enum)]
+    pub texture_sampling: Option<TextureSamplingArg>,
+    #[arg(long)]
+    pub stage_level: Option<u8>,
+    #[arg(long)]
+    pub exposure_bias: Option<f32>,
     #[arg(long, default_value_t = 30)]
     pub fps_cap: u32,
     #[arg(long, default_value_t = 0.5)]
@@ -98,6 +137,38 @@ pub struct RunArgs {
     pub anim: Option<String>,
     #[arg(long, value_enum, default_value_t = ModeArg::Ascii)]
     pub mode: ModeArg,
+    #[arg(long, value_enum)]
+    pub color_mode: Option<ColorModeArg>,
+    #[arg(long, value_enum)]
+    pub braille_profile: Option<BrailleProfileArg>,
+    #[arg(long, value_enum)]
+    pub theme: Option<ThemeArg>,
+    #[arg(long, value_enum)]
+    pub audio_reactive: Option<AudioReactiveArg>,
+    #[arg(long, value_enum)]
+    pub cinematic_camera: Option<CinematicCameraArg>,
+    #[arg(long)]
+    pub reactive_gain: Option<f32>,
+    #[arg(long, value_enum)]
+    pub perf_profile: Option<PerfProfileArg>,
+    #[arg(long, value_enum)]
+    pub detail_profile: Option<DetailProfileArg>,
+    #[arg(long, value_enum)]
+    pub backend: Option<BackendArg>,
+    #[arg(long, value_enum)]
+    pub center_lock: Option<ToggleArg>,
+    #[arg(long, value_enum)]
+    pub center_lock_mode: Option<CenterLockModeArg>,
+    #[arg(long, value_enum)]
+    pub camera_focus: Option<CameraFocusArg>,
+    #[arg(long, value_enum)]
+    pub material_color: Option<ToggleArg>,
+    #[arg(long, value_enum)]
+    pub texture_sampling: Option<TextureSamplingArg>,
+    #[arg(long)]
+    pub stage_level: Option<u8>,
+    #[arg(long)]
+    pub exposure_bias: Option<f32>,
     #[arg(long, default_value_t = 30)]
     pub fps_cap: u32,
     #[arg(long, default_value_t = 0.5)]
@@ -158,6 +229,38 @@ pub struct BenchArgs {
     pub seconds: f32,
     #[arg(long, value_enum, default_value_t = ModeArg::Ascii)]
     pub mode: ModeArg,
+    #[arg(long, value_enum)]
+    pub color_mode: Option<ColorModeArg>,
+    #[arg(long, value_enum)]
+    pub braille_profile: Option<BrailleProfileArg>,
+    #[arg(long, value_enum)]
+    pub theme: Option<ThemeArg>,
+    #[arg(long, value_enum)]
+    pub audio_reactive: Option<AudioReactiveArg>,
+    #[arg(long, value_enum)]
+    pub cinematic_camera: Option<CinematicCameraArg>,
+    #[arg(long)]
+    pub reactive_gain: Option<f32>,
+    #[arg(long, value_enum)]
+    pub perf_profile: Option<PerfProfileArg>,
+    #[arg(long, value_enum)]
+    pub detail_profile: Option<DetailProfileArg>,
+    #[arg(long, value_enum)]
+    pub backend: Option<BackendArg>,
+    #[arg(long, value_enum)]
+    pub center_lock: Option<ToggleArg>,
+    #[arg(long, value_enum)]
+    pub center_lock_mode: Option<CenterLockModeArg>,
+    #[arg(long, value_enum)]
+    pub camera_focus: Option<CameraFocusArg>,
+    #[arg(long, value_enum)]
+    pub material_color: Option<ToggleArg>,
+    #[arg(long, value_enum)]
+    pub texture_sampling: Option<TextureSamplingArg>,
+    #[arg(long)]
+    pub stage_level: Option<u8>,
+    #[arg(long)]
+    pub exposure_bias: Option<f32>,
     #[arg(long, default_value_t = 0.5)]
     pub cell_aspect: f32,
     #[arg(long, value_enum)]
@@ -240,6 +343,88 @@ pub enum SyncSpeedModeArg {
     Realtime,
 }
 
+#[derive(Debug, Clone, Copy, ValueEnum)]
+pub enum ColorModeArg {
+    Mono,
+    Ansi,
+}
+
+#[derive(Debug, Clone, Copy, ValueEnum)]
+pub enum BrailleProfileArg {
+    Safe,
+    Normal,
+    Dense,
+}
+
+#[derive(Debug, Clone, Copy, ValueEnum)]
+pub enum ThemeArg {
+    Theater,
+    Neon,
+    Holo,
+}
+
+#[derive(Debug, Clone, Copy, ValueEnum)]
+pub enum AudioReactiveArg {
+    Off,
+    On,
+    High,
+}
+
+#[derive(Debug, Clone, Copy, ValueEnum)]
+pub enum CinematicCameraArg {
+    Off,
+    On,
+    Aggressive,
+}
+
+#[derive(Debug, Clone, Copy, ValueEnum)]
+pub enum PerfProfileArg {
+    Balanced,
+    Cinematic,
+    Smooth,
+}
+
+#[derive(Debug, Clone, Copy, ValueEnum)]
+pub enum DetailProfileArg {
+    Perf,
+    Balanced,
+    Ultra,
+}
+
+#[derive(Debug, Clone, Copy, ValueEnum)]
+pub enum CenterLockModeArg {
+    Root,
+    Mixed,
+}
+
+#[derive(Debug, Clone, Copy, ValueEnum)]
+pub enum CameraFocusArg {
+    Auto,
+    Full,
+    Upper,
+    Face,
+    Hands,
+}
+
+#[derive(Debug, Clone, Copy, ValueEnum)]
+pub enum TextureSamplingArg {
+    Nearest,
+    Bilinear,
+}
+
+#[derive(Debug, Clone, Copy, ValueEnum)]
+pub enum BackendArg {
+    Cpu,
+    #[value(name = "gpu", alias = "gpu-preview")]
+    Gpu,
+}
+
+#[derive(Debug, Clone, Copy, ValueEnum)]
+pub enum ToggleArg {
+    On,
+    Off,
+}
+
 impl From<ModeArg> for RenderMode {
     fn from(value: ModeArg) -> Self {
         match value {
@@ -272,6 +457,120 @@ impl From<SyncSpeedModeArg> for SyncSpeedMode {
         match value {
             SyncSpeedModeArg::Auto => SyncSpeedMode::AutoDurationFit,
             SyncSpeedModeArg::Realtime => SyncSpeedMode::Realtime1x,
+        }
+    }
+}
+
+impl From<ColorModeArg> for ColorMode {
+    fn from(value: ColorModeArg) -> Self {
+        match value {
+            ColorModeArg::Mono => ColorMode::Mono,
+            ColorModeArg::Ansi => ColorMode::Ansi,
+        }
+    }
+}
+
+impl From<BrailleProfileArg> for BrailleProfile {
+    fn from(value: BrailleProfileArg) -> Self {
+        match value {
+            BrailleProfileArg::Safe => BrailleProfile::Safe,
+            BrailleProfileArg::Normal => BrailleProfile::Normal,
+            BrailleProfileArg::Dense => BrailleProfile::Dense,
+        }
+    }
+}
+
+impl From<ThemeArg> for ThemeStyle {
+    fn from(value: ThemeArg) -> Self {
+        match value {
+            ThemeArg::Theater => ThemeStyle::Theater,
+            ThemeArg::Neon => ThemeStyle::Neon,
+            ThemeArg::Holo => ThemeStyle::Holo,
+        }
+    }
+}
+
+impl From<PerfProfileArg> for PerfProfile {
+    fn from(value: PerfProfileArg) -> Self {
+        match value {
+            PerfProfileArg::Balanced => PerfProfile::Balanced,
+            PerfProfileArg::Cinematic => PerfProfile::Cinematic,
+            PerfProfileArg::Smooth => PerfProfile::Smooth,
+        }
+    }
+}
+
+impl From<DetailProfileArg> for DetailProfile {
+    fn from(value: DetailProfileArg) -> Self {
+        match value {
+            DetailProfileArg::Perf => DetailProfile::Perf,
+            DetailProfileArg::Balanced => DetailProfile::Balanced,
+            DetailProfileArg::Ultra => DetailProfile::Ultra,
+        }
+    }
+}
+
+impl From<CenterLockModeArg> for CenterLockMode {
+    fn from(value: CenterLockModeArg) -> Self {
+        match value {
+            CenterLockModeArg::Root => CenterLockMode::Root,
+            CenterLockModeArg::Mixed => CenterLockMode::Mixed,
+        }
+    }
+}
+
+impl From<CameraFocusArg> for CameraFocusMode {
+    fn from(value: CameraFocusArg) -> Self {
+        match value {
+            CameraFocusArg::Auto => CameraFocusMode::Auto,
+            CameraFocusArg::Full => CameraFocusMode::Full,
+            CameraFocusArg::Upper => CameraFocusMode::Upper,
+            CameraFocusArg::Face => CameraFocusMode::Face,
+            CameraFocusArg::Hands => CameraFocusMode::Hands,
+        }
+    }
+}
+
+impl From<TextureSamplingArg> for TextureSamplingMode {
+    fn from(value: TextureSamplingArg) -> Self {
+        match value {
+            TextureSamplingArg::Nearest => TextureSamplingMode::Nearest,
+            TextureSamplingArg::Bilinear => TextureSamplingMode::Bilinear,
+        }
+    }
+}
+
+impl From<BackendArg> for RenderBackend {
+    fn from(value: BackendArg) -> Self {
+        match value {
+            BackendArg::Cpu => RenderBackend::Cpu,
+            BackendArg::Gpu => RenderBackend::Gpu,
+        }
+    }
+}
+
+impl From<ToggleArg> for bool {
+    fn from(value: ToggleArg) -> Self {
+        matches!(value, ToggleArg::On)
+    }
+}
+
+impl From<AudioReactiveArg> for AudioReactiveMode {
+    fn from(value: AudioReactiveArg) -> Self {
+        match value {
+            AudioReactiveArg::Off => AudioReactiveMode::Off,
+            AudioReactiveArg::On => AudioReactiveMode::On,
+            AudioReactiveArg::High => AudioReactiveMode::High,
+        }
+    }
+}
+
+impl From<CinematicCameraArg> for CinematicCameraMode {
+    fn from(value: CinematicCameraArg) -> Self {
+        match value {
+            CinematicCameraArg::Off => CinematicCameraMode::Off,
+            CinematicCameraArg::On => CinematicCameraMode::On,
+            CinematicCameraArg::Aggressive => CinematicCameraMode::Aggressive,
         }
     }
 }
