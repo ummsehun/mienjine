@@ -1,0 +1,15 @@
+[package]
+name = "terminal-miku3d"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+anyhow = "1.0.98"
+clap = { version = "4.5.32", features = ["derive"] }
+crossterm = "0.29.0"
+glam = "0.30.0"
+gltf = { version = "1.4.1", features = ["import", "utils", "names"] }
+tobj = "4.0.3"
+
+[dev-dependencies]
+tempfile = "3.18.0"
