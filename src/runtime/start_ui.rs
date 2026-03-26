@@ -338,6 +338,8 @@ struct StartWizardState {
     width: u16,
     height: u16,
     detected_cell_aspect: Option<f32>,
+    #[cfg(feature = "gpu")]
+    gpu_available: bool,
     clip_duration_cache: HashMap<PathBuf, Option<f32>>,
     audio_duration_cache: HashMap<PathBuf, Option<f32>>,
 }
@@ -419,6 +421,8 @@ impl StartWizardState {
             width,
             height,
             detected_cell_aspect: None,
+            #[cfg(feature = "gpu")]
+            gpu_available: gpu_available_once(),
             clip_duration_cache: HashMap::new(),
             audio_duration_cache: HashMap::new(),
         }
@@ -1094,6 +1098,14 @@ impl StartWizardState {
     }
 }
 
+#[cfg(feature = "gpu")]
+fn gpu_available_once() -> bool {
+    #[cfg(feature = "gpu")]
+    {
+        crate::render::gpu::GpuRenderer::is_available()
+    }
+}
+
 #[derive(Debug, Clone)]
 enum StartWizardAction {
     Continue,
@@ -1521,7 +1533,16 @@ fn draw_render_options(
     };
     let backend = match state.backend {
         RenderBackend::Cpu => "CPU",
-        RenderBackend::Gpu => "CPU fallback",
+        #[cfg(feature = "gpu")]
+        RenderBackend::Gpu => {
+            if state.gpu_available {
+                "GPU (Metal)"
+            } else {
+                "CPU (GPU unavailable)"
+            }
+        }
+        #[cfg(not(feature = "gpu"))]
+        RenderBackend::Gpu => "CPU (GPU not compiled)",
     };
     let center_lock = if state.center_lock {
         tr(ui_language, "켜짐", "On")
@@ -1900,7 +1921,16 @@ fn draw_confirm_panel(
     };
     let backend = match selection.backend {
         RenderBackend::Cpu => "CPU",
-        RenderBackend::Gpu => "CPU fallback",
+        #[cfg(feature = "gpu")]
+        RenderBackend::Gpu => {
+            if state.gpu_available {
+                "GPU (Metal)"
+            } else {
+                "CPU (GPU unavailable)"
+            }
+        }
+        #[cfg(not(feature = "gpu"))]
+        RenderBackend::Gpu => "CPU (GPU not compiled)",
     };
     let braille_profile = match selection.braille_profile {
         BrailleProfile::Safe => "Safe",

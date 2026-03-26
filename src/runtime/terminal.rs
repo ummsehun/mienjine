@@ -1,20 +1,20 @@
 use std::io::{self, IsTerminal, Write};
 
-use anyhow::{Result, bail};
+use anyhow::{bail, Result};
 use crossterm::{
     cursor::{Hide, MoveTo, Show},
     execute, queue,
     style::Print,
     terminal::{
-        BeginSynchronizedUpdate, Clear, ClearType, EndSynchronizedUpdate, EnterAlternateScreen,
-        LeaveAlternateScreen, disable_raw_mode, enable_raw_mode, size,
+        disable_raw_mode, enable_raw_mode, size, BeginSynchronizedUpdate, Clear, ClearType,
+        EndSynchronizedUpdate, EnterAlternateScreen, LeaveAlternateScreen,
     },
 };
-use ratatui::{Terminal, backend::CrosstermBackend};
+use ratatui::{backend::CrosstermBackend, Terminal};
 
 use crate::{
     renderer::FrameBuffers,
-    runtime::graphics_proto::{GraphicsPresentOptions, write_graphics_frame},
+    runtime::graphics_proto::{write_graphics_frame, GraphicsPresentOptions},
     scene::{
         AnsiQuantization, GraphicsProtocol, KittyCompression, KittyPipelineMode, KittyTransport,
         RecoverStrategy,
@@ -581,5 +581,15 @@ mod tests {
             AnsiQuantization::Q216,
         );
         assert!(segments.is_empty());
+    }
+
+    #[test]
+    fn presenter_resize_invalidates_previous_snapshot() {
+        let mut presenter = TerminalPresenter::default();
+        presenter.capture_snapshot(&FrameBuffers::new(2, 1), false, AnsiQuantization::Q216);
+        presenter.resize(4, 2);
+        assert!(presenter.force_full_repaint || presenter.last_glyphs.len() == 8);
+        assert_eq!(presenter.last_glyphs.len(), 8);
+        assert_eq!(presenter.last_rgb.len(), 8);
     }
 }

@@ -1,3 +1,4 @@
 [alias]
-start = "run --release -- start"
+start = "run --features gpu --release -- start"
 start-dev = "run -- start"
+start-gpu = "run --features gpu --release -- start"

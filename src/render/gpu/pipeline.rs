@@ -1,23 +1,62 @@
 use std::sync::Arc;
 
 use super::device::{GpuContext, GpuError};
+use wgpu::util::DeviceExt;
+
+const MAX_JOINTS: usize = 512;
 
 #[repr(C)]
 #[derive(Debug, Clone, Copy, bytemuck::Pod, bytemuck::Zeroable)]
 pub struct Uniforms {
     pub mvp_matrix: [[f32; 4]; 4],
+    pub model_matrix: [[f32; 4]; 4],
+    pub normal_matrix: [[f32; 4]; 3],
     pub camera_pos: [f32; 4],
     pub light_dir: [f32; 4],
     pub lighting_params: [f32; 4],
+    pub material_color: [f32; 4],
+    pub fog_params: [f32; 4],
+    pub uv_transform: [f32; 4],
+    pub uv_params: [f32; 4],
+    pub alpha_params: [f32; 4],
+    pub texture_params: [f32; 4],
+    pub exposure: f32,
+    pub has_skin: u32,
+    pub _pad2: [f32; 2],
 }
 
 impl Default for Uniforms {
     fn default() -> Self {
         Self {
-            mvp_matrix: [[0.0; 4]; 4],
+            mvp_matrix: [
+                [1.0, 0.0, 0.0, 0.0],
+                [0.0, 1.0, 0.0, 0.0],
+                [0.0, 0.0, 1.0, 0.0],
+                [0.0, 0.0, 0.0, 1.0],
+            ],
+            model_matrix: [
+                [1.0, 0.0, 0.0, 0.0],
+                [0.0, 1.0, 0.0, 0.0],
+                [0.0, 0.0, 1.0, 0.0],
+                [0.0, 0.0, 0.0, 1.0],
+            ],
+            normal_matrix: [
+                [1.0, 0.0, 0.0, 0.0],
+                [0.0, 1.0, 0.0, 0.0],
+                [0.0, 0.0, 1.0, 0.0],
+            ],
             camera_pos: [0.0, 4.0, 4.0, 1.0],
             light_dir: [0.3, 0.7, 0.6, 0.0],
             lighting_params: [0.1, 0.7, 0.3, 32.0],
+            material_color: [1.0, 1.0, 1.0, 1.0],
+            fog_params: [0.0, 100.0, 0.1, 0.0],
+            uv_transform: [0.0, 0.0, 1.0, 1.0],
+            uv_params: [0.0, 1.0, 0.0, 0.0],
+            alpha_params: [0.0, 0.5, 0.0, 0.0],
+            texture_params: [1.0, 0.0, 0.0, 0.0],
+            exposure: 1.0,
+            has_skin: 0,
+            _pad2: [0.0; 2],
         }
     }
 }
@@ -27,7 +66,10 @@ impl Default for Uniforms {
 pub struct Vertex {
     pub position: [f32; 3],
     pub normal: [f32; 3],
-    pub uv: [f32; 2],
+    pub uv0: [f32; 2],
+    pub uv1: [f32; 2],
+    pub joint_indices: [u32; 4],
+    pub joint_weights: [f32; 4],
 }
 
 impl Vertex {
@@ -51,6 +93,22 @@ impl Vertex {
                     shader_location: 2,
                     format: wgpu::VertexFormat::Float32x2,
                 },
+                wgpu::VertexAttribute {
+                    offset: std::mem::size_of::<[f32; 8]>() as wgpu::BufferAddress,
+                    shader_location: 3,
+                    format: wgpu::VertexFormat::Float32x2,
+                },
+                wgpu::VertexAttribute {
+                    offset: std::mem::size_of::<[f32; 10]>() as wgpu::BufferAddress,
+                    shader_location: 4,
+                    format: wgpu::VertexFormat::Uint32x4,
+                },
+                wgpu::VertexAttribute {
+                    offset: std::mem::size_of::<[f32; 10]>() as wgpu::BufferAddress
+                        + std::mem::size_of::<[u32; 4]>() as wgpu::BufferAddress,
+                    shader_location: 5,
+                    format: wgpu::VertexFormat::Float32x4,
+                },
             ],
         }
     }
@@ -59,8 +117,10 @@ impl Vertex {
 pub struct GpuPipeline {
     pub render_pipeline: Arc<wgpu::RenderPipeline>,
     pub uniform_buffer: Arc<wgpu::Buffer>,
+    pub joint_matrix_buffer: Arc<wgpu::Buffer>,
     pub bind_group_layout: Arc<wgpu::BindGroupLayout>,
     pub bind_group: Arc<wgpu::BindGroup>,
+    pub texture_bind_group_layout: Arc<wgpu::BindGroupLayout>,
 }
 
 impl GpuPipeline {
@@ -76,16 +136,52 @@ impl GpuPipeline {
             ctx.device
                 .create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
                     label: Some("uniform_bind_group_layout"),
-                    entries: &[wgpu::BindGroupLayoutEntry {
-                        binding: 0,
-                        visibility: wgpu::ShaderStages::VERTEX_FRAGMENT,
-                        ty: wgpu::BindingType::Buffer {
-                            ty: wgpu::BufferBindingType::Uniform,
-                            has_dynamic_offset: false,
-                            min_binding_size: None,
+                    entries: &[
+                        wgpu::BindGroupLayoutEntry {
+                            binding: 0,
+                            visibility: wgpu::ShaderStages::VERTEX_FRAGMENT,
+                            ty: wgpu::BindingType::Buffer {
+                                ty: wgpu::BufferBindingType::Uniform,
+                                has_dynamic_offset: false,
+                                min_binding_size: None,
+                            },
+                            count: None,
                         },
-                        count: None,
-                    }],
+                        wgpu::BindGroupLayoutEntry {
+                            binding: 1,
+                            visibility: wgpu::ShaderStages::VERTEX,
+                            ty: wgpu::BindingType::Buffer {
+                                ty: wgpu::BufferBindingType::Storage { read_only: true },
+                                has_dynamic_offset: false,
+                                min_binding_size: None,
+                            },
+                            count: None,
+                        },
+                    ],
+                });
+
+        let texture_bind_group_layout =
+            ctx.device
+                .create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+                    label: Some("texture_bind_group_layout"),
+                    entries: &[
+                        wgpu::BindGroupLayoutEntry {
+                            binding: 0,
+                            visibility: wgpu::ShaderStages::FRAGMENT,
+                            ty: wgpu::BindingType::Texture {
+                                sample_type: wgpu::TextureSampleType::Float { filterable: true },
+                                view_dimension: wgpu::TextureViewDimension::D2,
+                                multisampled: false,
+                            },
+                            count: None,
+                        },
+                        wgpu::BindGroupLayoutEntry {
+                            binding: 1,
+                            visibility: wgpu::ShaderStages::FRAGMENT,
+                            ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering),
+                            count: None,
+                        },
+                    ],
                 });
 
         let uniform_buffer = ctx.device.create_buffer(&wgpu::BufferDescriptor {
@@ -95,20 +191,36 @@ impl GpuPipeline {
             mapped_at_creation: false,
         });
 
+        let joint_matrix_buffer = {
+            let zeroes = vec![0.0f32; MAX_JOINTS * 16];
+            ctx.device
+                .create_buffer_init(&wgpu::util::BufferInitDescriptor {
+                    label: Some("joint_matrix_buffer"),
+                    contents: bytemuck::cast_slice(&zeroes),
+                    usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_DST,
+                })
+        };
+
         let bind_group = ctx.device.create_bind_group(&wgpu::BindGroupDescriptor {
             label: Some("uniform_bind_group"),
             layout: &bind_group_layout,
-            entries: &[wgpu::BindGroupEntry {
-                binding: 0,
-                resource: uniform_buffer.as_entire_binding(),
-            }],
+            entries: &[
+                wgpu::BindGroupEntry {
+                    binding: 0,
+                    resource: uniform_buffer.as_entire_binding(),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 1,
+                    resource: joint_matrix_buffer.as_entire_binding(),
+                },
+            ],
         });
 
         let pipeline_layout = ctx
             .device
             .create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
                 label: Some("mesh_pipeline_layout"),
-                bind_group_layouts: &[&bind_group_layout],
+                bind_group_layouts: &[&bind_group_layout, &texture_bind_group_layout],
                 push_constant_ranges: &[],
             });
 
@@ -172,8 +284,10 @@ impl GpuPipeline {
         Ok(Self {
             render_pipeline: Arc::new(render_pipeline),
             uniform_buffer: Arc::new(uniform_buffer),
+            joint_matrix_buffer: Arc::new(joint_matrix_buffer),
             bind_group_layout: Arc::new(bind_group_layout),
             bind_group: Arc::new(bind_group),
+            texture_bind_group_layout: Arc::new(texture_bind_group_layout),
         })
     }
 

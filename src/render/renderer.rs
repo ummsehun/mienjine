@@ -2137,7 +2137,7 @@ fn tone_map_intensity(raw: f32, floor: f32, gamma: f32, exposure: f32) -> f32 {
     mapped.clamp(0.0, 1.0)
 }
 
-fn exposure_bias_multiplier(bias: f32) -> f32 {
+pub fn exposure_bias_multiplier(bias: f32) -> f32 {
     let clamped = bias.clamp(-0.5, 0.8);
     (2.0_f32).powf(clamped).clamp(0.70, 1.80)
 }

@@ -2924,6 +2924,9 @@ fn run_scene_interactive(
         } else {
             0.0
         };
+        if animation_index.is_none() && rotation.abs() > 0.0 {
+            terminal.force_full_repaint();
+        }
         let detected_cell_aspect = if config.cell_aspect_mode == CellAspectMode::Auto {
             detect_terminal_cell_aspect()
         } else {
@@ -3007,6 +3010,12 @@ fn run_scene_interactive(
             jitter_scale,
         );
         let effective_zoom = (user_zoom * screen_fit.auto_zoom_gain).clamp(0.20, 8.0);
+        let repaint_due_to_zoom = (effective_zoom - 1.0).abs() > 0.12
+            || focus_offset.length_squared() > 0.01
+            || camera_height_offset.abs() > 0.01;
+        if repaint_due_to_zoom {
+            terminal.force_full_repaint();
+        }
         let auto_radius_shrink = auto_radius_guard.shrink_ratio;
         if !center_lock_enabled || matches!(runtime_camera.control_mode, CameraControlMode::FreeFly)
         {
@@ -5384,7 +5393,23 @@ fn resolve_animation_index(scene: &SceneCpu, selector: Option<&str>) -> Result<O
             .with_context(|| format!("animation selector not found: {selector}"))?;
         return Ok(Some(index));
     }
-    Ok((!scene.animations.is_empty()).then_some(0))
+    Ok(default_body_animation_index(scene))
+}
+
+fn default_body_animation_index(scene: &SceneCpu) -> Option<usize> {
+    scene
+        .animations
+        .iter()
+        .enumerate()
+        .find(|(_, clip)| {
+            !clip.channels.is_empty()
+                && clip
+                    .channels
+                    .iter()
+                    .any(|channel| channel.target != ChannelTarget::MorphWeights)
+        })
+        .map(|(index, _)| index)
+        .or_else(|| (!scene.animations.is_empty()).then_some(0))
 }
 
 fn load_scene_for_bench(args: &BenchArgs) -> Result<(SceneCpu, Option<usize>, bool)> {
@@ -5806,6 +5831,84 @@ mod tests {
             resolve_effective_camera_mode(CameraMode::Off, false),
             CameraMode::Off
         ));
+    }
+
+    #[test]
+    fn default_animation_prefers_non_morph_clip() {
+        use crate::animation::{
+            AnimationChannel, AnimationClip, ChannelTarget, ChannelValues, Interpolation,
+        };
+        use crate::scene::{MeshCpu, MeshInstance, MeshLayer, MorphTargetCpu, Node, SceneCpu};
+        use glam::{Quat, Vec3};
+
+        let scene = SceneCpu {
+            meshes: vec![MeshCpu {
+                positions: vec![Vec3::ZERO],
+                normals: vec![Vec3::Y],
+                uv0: None,
+                uv1: None,
+                colors_rgba: None,
+                material_index: None,
+                indices: vec![[0, 0, 0]],
+                joints4: None,
+                weights4: None,
+                morph_targets: vec![MorphTargetCpu {
+                    position_deltas: vec![Vec3::new(0.0, 1.0, 0.0)],
+                    normal_deltas: vec![Vec3::ZERO],
+                }],
+            }],
+            materials: Vec::new(),
+            textures: Vec::new(),
+            skins: Vec::new(),
+            nodes: vec![Node {
+                name: Some("root".to_owned()),
+                parent: None,
+                children: Vec::new(),
+                base_translation: Vec3::ZERO,
+                base_rotation: Quat::IDENTITY,
+                base_scale: Vec3::ONE,
+            }],
+            mesh_instances: vec![MeshInstance {
+                mesh_index: 0,
+                node_index: 0,
+                skin_index: None,
+                default_morph_weights: vec![0.0],
+                layer: MeshLayer::Subject,
+            }],
+            animations: vec![
+                AnimationClip {
+                    name: Some("face".to_owned()),
+                    channels: vec![AnimationChannel {
+                        node_index: 0,
+                        target: ChannelTarget::MorphWeights,
+                        interpolation: Interpolation::Linear,
+                        inputs: vec![0.0, 1.0],
+                        outputs: ChannelValues::MorphWeights {
+                            values: vec![0.0, 1.0],
+                            weights_per_key: 1,
+                        },
+                    }],
+                    duration: 1.0,
+                    looping: true,
+                },
+                AnimationClip {
+                    name: Some("body".to_owned()),
+                    channels: vec![AnimationChannel {
+                        node_index: 0,
+                        target: ChannelTarget::Translation,
+                        interpolation: Interpolation::Linear,
+                        inputs: vec![0.0, 1.0],
+                        outputs: ChannelValues::Vec3(vec![Vec3::ZERO, Vec3::new(0.0, 1.0, 0.0)]),
+                    }],
+                    duration: 1.0,
+                    looping: true,
+                },
+            ],
+            root_center_node: Some(0),
+        };
+
+        let index = resolve_animation_index(&scene, None).expect("animation index");
+        assert_eq!(index, Some(1));
     }
 
     #[test]
