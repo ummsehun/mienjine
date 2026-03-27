@@ -6,10 +6,10 @@ use crate::runtime::sync_profile::SyncProfileMode;
 use crate::scene::{
     AnsiQuantization, AudioReactiveMode, BrailleProfile, CameraAlignPreset, CameraControlMode,
     CameraFocusMode, CameraMode, CellAspectMode, CenterLockMode, CinematicCameraMode,
-    ClarityProfile, ColorMode, ContrastProfile, DetailProfile, GraphicsProtocol, KittyCompression,
-    KittyInternalResPreset, KittyPipelineMode, KittyTransport, PerfProfile, RecoverStrategy,
-    RenderBackend, RenderMode, RenderOutputMode, StageRole, SyncPolicy, SyncSpeedMode,
-    TextureSamplerMode, TextureSamplingMode, TextureVOrigin, ThemeStyle, DEFAULT_CHARSET,
+    ClarityProfile, ColorMode, ContrastProfile, DEFAULT_CHARSET, DetailProfile, GraphicsProtocol,
+    KittyCompression, KittyInternalResPreset, KittyPipelineMode, KittyTransport, PerfProfile,
+    RecoverStrategy, RenderBackend, RenderMode, RenderOutputMode, StageRole, SyncPolicy,
+    SyncSpeedMode, TextureSamplerMode, TextureSamplingMode, TextureVOrigin, ThemeStyle,
 };
 
 #[derive(Debug, Parser)]
@@ -27,7 +27,7 @@ pub struct Cli {
 pub enum Commands {
     /// Start with setup TUI (model/music/mode/fps) and run selected GLB scene.
     Start(StartArgs),
-    /// Run interactive terminal rendering for cube/OBJ/GLB scenes.
+    /// Run interactive terminal rendering for cube/OBJ/GLB/PMX scenes.
     Run(RunArgs),
     /// Launch web preview server (Three.js reference path).
     Preview(PreviewArgs),
@@ -234,6 +234,9 @@ pub struct RunArgs {
     /// Path to .obj file (required for --scene obj).
     #[arg(long)]
     pub obj: Option<PathBuf>,
+    /// Path to .pmx file (required for --scene pmx).
+    #[arg(long)]
+    pub pmx: Option<PathBuf>,
     /// Directory to scan for stage directories.
     #[arg(long, default_value = "assets/stage")]
     pub stage_dir: PathBuf,
@@ -613,6 +616,7 @@ pub enum RunSceneArg {
     Cube,
     Obj,
     Glb,
+    Pmx,
 }
 
 #[derive(Debug, Clone, Copy, ValueEnum)]

@@ -3,6 +3,15 @@
 version = 4
 
 [[package]]
+name = "PMXUtil"
+version = "0.8.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2e2feb2316f4bd9e19c970e71c5464309bc683d2f43ce42f700d98425297d6da"
+dependencies = [
+ "encoding_rs",
+]
+
+[[package]]
 name = "adler2"
 version = "2.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2033,6 +2042,7 @@ dependencies = [
 name = "terminal-miku3d"
 version = "0.1.0"
 dependencies = [
+ "PMXUtil",
  "anyhow",
  "base64 0.22.1",
  "bytemuck",

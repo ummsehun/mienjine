@@ -48,6 +48,7 @@ cargo start --camera-vmd assets/camera/world_is_mine.vmd --camera-mode vmd --cam
 cargo run -- run --scene cube --mode ascii --fps-cap 30
 cargo run -- run --scene glb --glb /path/to/model.glb --fps-cap 0
 cargo run -- run --scene glb --glb /path/to/model.glb --anim 0 --mode ascii --fps-cap 30 --cell-aspect 0.5 --cell-aspect-mode auto --stage-dir assets/stage --stage auto
+cargo run -- run --scene pmx --pmx /path/to/model.pmx --mode braille --fps-cap 30
 cargo run -- run --scene glb --glb /path/to/model.glb --output-mode hybrid --graphics-protocol auto --sync-policy continuous --sync-hard-snap-ms 120 --sync-kp 0.15
 cargo run -- run --scene glb --glb /path/to/model.glb --sync-profile-mode write --sync-profile-key world_is_mine
 cargo run -- run --scene glb --glb /path/to/model.glb --wasd-mode freefly --freefly-speed 1.2 --camera-look-speed 1.2
@@ -252,7 +253,8 @@ min_triangle_area_px2 = 0.08
 - `sync_profile_mode=auto|write`에서 런타임 중 `,` `.` `/`로 오프셋을 조정하면 종료 시 `assets/sync/profiles.json`에 write-back 됩니다.
 - 오디오 초기화 실패 시 렌더링은 계속 진행되며 무음으로 동작합니다.
 - 시작 위저드에서 스테이지를 선택할 수 있으며, `PMX 변환 필요` 항목은 실행 시 차단 + 변환 안내를 출력합니다.
-- PMX 스테이지는 런타임에서 직접 로드하지 않습니다. Blender + MMD Tools로 GLB로 변환한 뒤 같은 `{dir}`에 두면 `사용 가능`으로 자동 전환됩니다.
+- 스테이지 디렉터리의 PMX 항목은 여전히 GLB로 변환해야 합니다. Blender + MMD Tools로 GLB로 변환한 뒤 같은 `{dir}`에 두면 `사용 가능`으로 자동 전환됩니다.
+- 직접 PMX 파일을 열려면 `cargo run -- run --scene pmx --pmx /path/to/model.pmx`를 사용하세요.
 
 ## Runtime Controls
 

@@ -11,14 +11,14 @@ use std::{
     time::{Duration, Instant},
 };
 
-use anyhow::{bail, Context, Result};
+use anyhow::{Context, Result, bail};
 use crossterm::event::{self, Event, KeyCode, KeyEventKind};
 use crossterm::terminal::window_size;
 use glam::{Quat, Vec3};
 use rodio::{Decoder, OutputStream, Sink, Source};
 
 use crate::{
-    animation::{compute_global_matrices, default_poses, ChannelTarget},
+    animation::{ChannelTarget, compute_global_matrices, default_poses},
     assets::vmd_camera::parse_vmd_camera,
     cli::{
         BenchArgs, BenchSceneArg, Cli, Commands, InspectArgs, PreprocessArgs, PreviewArgs, RunArgs,
@@ -30,29 +30,29 @@ use crate::{
     render::backend::render_frame_with_backend,
     renderer::{Camera, FrameBuffers, GlyphRamp, RenderScratch, RenderStats},
     runtime::{
-        config::{load_gascii_config, GasciiConfig},
+        config::{GasciiConfig, load_gascii_config},
         graphics_proto::{
             cleanup_orphan_shm_files, cleanup_shm_registry, detect_supported_protocol,
         },
         preprocess::run_preprocess,
         preview::run_preview_server,
         start_ui::{
-            run_start_wizard, StageChoice, StageStatus, StageTransform, StartWizardDefaults,
+            StageChoice, StageStatus, StageTransform, StartWizardDefaults, run_start_wizard,
         },
         sync_profile::{
-            build_profile_key, default_profile_store_path, SyncProfileEntry, SyncProfileMode,
-            SyncProfileStore,
+            SyncProfileEntry, SyncProfileMode, SyncProfileStore, build_profile_key,
+            default_profile_store_path,
         },
     },
     scene::{
-        estimate_cell_aspect_from_window, kitty_internal_resolution, resolve_cell_aspect,
         AnsiQuantization, AudioReactiveMode, BrailleProfile, CameraAlignPreset, CameraControlMode,
         CameraFocusMode, CameraMode, CellAspectMode, CenterLockMode, CinematicCameraMode,
         ClarityProfile, ColorMode, ContrastProfile, DetailProfile, FreeFlyState, GraphicsProtocol,
         KittyCompression, KittyInternalResPreset, KittyPipelineMode, KittyTransport, MeshLayer,
         Node, PerfProfile, RecoverStrategy, RenderBackend, RenderConfig, RenderMode,
         RenderOutputMode, SceneCpu, StageRole, SyncPolicy, SyncSpeedMode, TextureSamplingMode,
-        ThemeStyle,
+        ThemeStyle, estimate_cell_aspect_from_window, kitty_internal_resolution,
+        resolve_cell_aspect,
     },
     terminal::{PresentMode, TerminalProfile, TerminalSession},
 };
@@ -2087,6 +2087,7 @@ fn resolve_sync_profile_for_assets(
         RunSceneArg::Cube => "cube",
         RunSceneArg::Obj => "obj",
         RunSceneArg::Glb => "glb",
+        RunSceneArg::Pmx => "pmx",
     };
     let key = options
         .key_override
@@ -2374,13 +2375,17 @@ fn resolve_runtime_backend(requested: RenderBackend) -> RenderBackend {
                 if GpuRenderer::is_available() {
                     RenderBackend::Gpu
                 } else {
-                    eprintln!("warning: gpu backend requested but no suitable gpu found; falling back to cpu.");
+                    eprintln!(
+                        "warning: gpu backend requested but no suitable gpu found; falling back to cpu."
+                    );
                     RenderBackend::Cpu
                 }
             }
             #[cfg(not(feature = "gpu"))]
             {
-                eprintln!("warning: gpu backend requested but gpu feature not enabled; falling back to cpu.");
+                eprintln!(
+                    "warning: gpu backend requested but gpu feature not enabled; falling back to cpu."
+                );
                 RenderBackend::Cpu
             }
         }
@@ -2451,6 +2456,11 @@ fn load_scene_for_run(args: &RunArgs) -> Result<(SceneCpu, Option<usize>, bool)>
             let scene = loader::load_gltf(path)?;
             let animation_index = resolve_animation_index(&scene, args.anim.as_deref())?;
             Ok((scene, animation_index, true))
+        }
+        RunSceneArg::Pmx => {
+            let path = required_path(args.pmx.as_deref(), "--pmx is required for --scene pmx")?;
+            let scene = loader::load_pmx(path)?;
+            Ok((scene, None, true))
         }
     }
 }
@@ -4170,6 +4180,7 @@ fn load_scene_file(path: &Path) -> Result<SceneCpu> {
     match ext.as_str() {
         "glb" | "gltf" => loader::load_gltf(path),
         "obj" => loader::load_obj(path),
+        "pmx" => loader::load_pmx(path),
         other => bail!(
             "unsupported scene file extension for runtime merge: {} ({other})",
             path.display()
@@ -6081,9 +6092,11 @@ mod tests {
                 && matches!(s.status, StageStatus::NeedsConvert)
                 && s.pmx_path.is_some()
         }));
-        assert!(stages
-            .iter()
-            .any(|s| s.name == "empty_stage" && matches!(s.status, StageStatus::Invalid)));
+        assert!(
+            stages
+                .iter()
+                .any(|s| s.name == "empty_stage" && matches!(s.status, StageStatus::Invalid))
+        );
     }
 
     #[test]
