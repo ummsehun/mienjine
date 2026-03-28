@@ -1,6 +1,6 @@
-use std::io::{self, IsTerminal, Write};
+use std::io::{self, Write};
 
-use anyhow::{bail, Result};
+use anyhow::Result;
 use crossterm::{
     cursor::{Hide, MoveTo, Show},
     execute, queue,
@@ -15,43 +15,15 @@ use ratatui::{backend::CrosstermBackend, Terminal};
 use crate::{
     renderer::FrameBuffers,
     runtime::graphics_proto::{write_graphics_frame, GraphicsPresentOptions},
+    runtime::terminal_caps::ensure_tty,
+    runtime::terminal_diff::{build_diff_segments, quantize_rgb},
     scene::{
         AnsiQuantization, GraphicsProtocol, KittyCompression, KittyPipelineMode, KittyTransport,
         RecoverStrategy,
     },
 };
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct TerminalProfile {
-    pub is_ghostty: bool,
-    pub supports_truecolor: bool,
-    pub use_alt_screen: bool,
-    pub use_sync_updates: bool,
-}
-
-impl TerminalProfile {
-    pub fn detect() -> Self {
-        let is_ghostty = std::env::var("TERM_PROGRAM")
-            .map(|v| v.eq_ignore_ascii_case("ghostty"))
-            .unwrap_or(false);
-        let use_alt_screen = if is_ghostty {
-            true
-        } else {
-            should_use_alt_screen()
-        };
-        let use_sync_updates = if is_ghostty {
-            true
-        } else {
-            should_use_sync_updates()
-        };
-        Self {
-            is_ghostty,
-            supports_truecolor: supports_truecolor(),
-            use_alt_screen,
-            use_sync_updates,
-        }
-    }
-}
+pub use crate::runtime::terminal_caps::TerminalProfile;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum PresentMode {
@@ -63,15 +35,6 @@ impl Default for PresentMode {
     fn default() -> Self {
         Self::Diff
     }
-}
-
-#[derive(Debug)]
-struct DiffSegment {
-    x: u16,
-    y: u16,
-    start_idx: usize,
-    end_idx_exclusive: usize,
-    payload: String,
 }
 
 pub struct TerminalSession {
@@ -423,205 +386,9 @@ impl Drop for RatatuiSession {
     }
 }
 
-fn ensure_tty() -> Result<()> {
-    if !io::stdin().is_terminal() || !io::stdout().is_terminal() {
-        bail!("interactive TUI requires a real terminal (TTY). run directly in Ghostty/Terminal.");
-    }
-    Ok(())
-}
-
-fn should_use_alt_screen() -> bool {
-    let force_no_alt = std::env::var("GASCII_NO_ALT_SCREEN")
-        .map(|v| matches!(v.as_str(), "1" | "true" | "TRUE" | "yes" | "YES"))
-        .unwrap_or(false);
-    let enable_alt = std::env::var("GASCII_ALT_SCREEN")
-        .map(|v| matches!(v.as_str(), "1" | "true" | "TRUE" | "yes" | "YES"))
-        .unwrap_or(false);
-    enable_alt && !force_no_alt
-}
-
-fn should_use_sync_updates() -> bool {
-    let disable = std::env::var("GASCII_NO_SYNC_UPDATES")
-        .map(|v| matches!(v.as_str(), "1" | "true" | "TRUE" | "yes" | "YES"))
-        .unwrap_or(false);
-    !disable
-}
-
-fn build_diff_segments(
-    frame: &FrameBuffers,
-    previous_glyphs: &[char],
-    previous_rgb: &[[u8; 3]],
-    use_ansi: bool,
-    quantization: AnsiQuantization,
-) -> Vec<DiffSegment> {
-    let width = usize::from(frame.width);
-    let height = usize::from(frame.height);
-    if width == 0 || height == 0 {
-        return Vec::new();
-    }
-
-    let mut out = Vec::new();
-    for y in 0..height {
-        let row_start = y * width;
-        let row_end = row_start + width;
-        let mut x = 0usize;
-        while row_start + x < row_end {
-            let idx = row_start + x;
-            if !cell_changed(
-                idx,
-                frame,
-                previous_glyphs,
-                previous_rgb,
-                use_ansi,
-                quantization,
-            ) {
-                x += 1;
-                continue;
-            }
-
-            let run_start_x = x;
-            let run_start_idx = idx;
-            let mut payload = String::new();
-            let mut current_rgb: Option<[u8; 3]> = None;
-            while row_start + x < row_end {
-                let ridx = row_start + x;
-                if !cell_changed(
-                    ridx,
-                    frame,
-                    previous_glyphs,
-                    previous_rgb,
-                    use_ansi,
-                    quantization,
-                ) {
-                    break;
-                }
-                if use_ansi {
-                    let rgb = quantize_rgb(frame.fg_rgb[ridx], quantization);
-                    if current_rgb != Some(rgb) {
-                        push_fg_ansi(&mut payload, rgb);
-                        current_rgb = Some(rgb);
-                    }
-                }
-                payload.push(frame.glyphs[ridx]);
-                x += 1;
-            }
-            if use_ansi {
-                payload.push_str("\x1b[0m");
-            }
-            out.push(DiffSegment {
-                x: run_start_x as u16,
-                y: y as u16,
-                start_idx: run_start_idx,
-                end_idx_exclusive: row_start + x,
-                payload,
-            });
-        }
-    }
-    out
-}
-
-fn cell_changed(
-    idx: usize,
-    frame: &FrameBuffers,
-    previous_glyphs: &[char],
-    previous_rgb: &[[u8; 3]],
-    use_ansi: bool,
-    quantization: AnsiQuantization,
-) -> bool {
-    if frame.glyphs.get(idx).copied().unwrap_or(' ')
-        != previous_glyphs.get(idx).copied().unwrap_or(' ')
-    {
-        return true;
-    }
-    if use_ansi {
-        let curr = quantize_rgb(
-            frame.fg_rgb.get(idx).copied().unwrap_or([255, 255, 255]),
-            quantization,
-        );
-        let prev = previous_rgb.get(idx).copied().unwrap_or([255, 255, 255]);
-        return curr != prev;
-    }
-    false
-}
-
-fn push_fg_ansi(out: &mut String, rgb: [u8; 3]) {
-    use std::fmt::Write as _;
-    let _ = write!(out, "\x1b[38;2;{};{};{}m", rgb[0], rgb[1], rgb[2]);
-}
-
-fn quantize_rgb(rgb: [u8; 3], quantization: AnsiQuantization) -> [u8; 3] {
-    if matches!(quantization, AnsiQuantization::Off) {
-        return rgb;
-    }
-    fn q(c: u8) -> u8 {
-        let bucket = ((c as u16 * 5 + 127) / 255) as u8;
-        bucket * 51
-    }
-    [q(rgb[0]), q(rgb[1]), q(rgb[2])]
-}
-
-pub fn supports_truecolor() -> bool {
-    let color_term = std::env::var("COLORTERM")
-        .unwrap_or_default()
-        .to_ascii_lowercase();
-    if color_term.contains("truecolor") || color_term.contains("24bit") {
-        return true;
-    }
-    let term = std::env::var("TERM")
-        .unwrap_or_default()
-        .to_ascii_lowercase();
-    term.contains("direct")
-        || term.contains("kitty")
-        || term.contains("wezterm")
-        || term.contains("ghostty")
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn diff_segments_include_only_changed_runs() {
-        let mut frame = FrameBuffers::new(5, 1);
-        frame.glyphs.clone_from_slice(&['a', 'b', 'c', 'd', 'e']);
-        frame.fg_rgb.fill([255, 255, 255]);
-        let prev_glyphs = vec!['a', 'x', 'c', 'd', 'e'];
-        let prev_rgb = vec![[255, 255, 255]; 5];
-
-        let segments = build_diff_segments(
-            &frame,
-            &prev_glyphs,
-            &prev_rgb,
-            false,
-            AnsiQuantization::Q216,
-        );
-        assert_eq!(segments.len(), 1);
-        assert_eq!(segments[0].x, 1);
-        assert_eq!(segments[0].payload, "b");
-    }
-
-    #[test]
-    fn ansi_diff_quantizes_colors_before_compare() {
-        let mut frame = FrameBuffers::new(2, 1);
-        frame.glyphs.clone_from_slice(&['@', '#']);
-        frame.fg_rgb[0] = [250, 10, 10];
-        frame.fg_rgb[1] = [240, 15, 20];
-
-        let prev_glyphs = vec!['@', '#'];
-        let prev_rgb = vec![
-            quantize_rgb([255, 0, 0], AnsiQuantization::Q216),
-            quantize_rgb([255, 0, 0], AnsiQuantization::Q216),
-        ];
-
-        let segments = build_diff_segments(
-            &frame,
-            &prev_glyphs,
-            &prev_rgb,
-            true,
-            AnsiQuantization::Q216,
-        );
-        assert!(segments.is_empty());
-    }
 
     #[test]
     fn presenter_resize_invalidates_previous_snapshot() {

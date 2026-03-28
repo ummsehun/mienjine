@@ -1,6 +1,20 @@
 use glam::{Mat3, Mat4, Vec2, Vec3, Vec4};
 use std::fmt::Write as _;
 
+pub use super::renderer_exposure::exposure_bias_multiplier;
+
+use super::{
+    renderer_color::{
+        boost_saturation, clarity_saturation_gain, color_scale_from_tonemap, luminance,
+        model_color_for_intensity, scale_rgb, srgb_to_linear, to_display_rgb,
+    },
+    renderer_exposure::{push_histogram, tone_map_intensity, update_exposure_from_histogram},
+    renderer_metrics::apply_visible_metrics,
+};
+
+#[cfg(test)]
+use super::renderer_metrics::visible_cell_ratio;
+
 use crate::math::{depth_less, perspective_matrix};
 use crate::scene::{
     AnsiQuantization, BrailleProfile, CameraFocusMode, ClarityProfile, ColorMode, ContrastProfile,
@@ -344,24 +358,6 @@ fn resolve_material_props(scene: &SceneCpu, material_index: Option<usize>) -> Ma
     }
 }
 
-fn mix_color(a: [u8; 3], b: [u8; 3], t: f32) -> [u8; 3] {
-    let t = t.clamp(0.0, 1.0);
-    [
-        (a[0] as f32 + (b[0] as f32 - a[0] as f32) * t).round() as u8,
-        (a[1] as f32 + (b[1] as f32 - a[1] as f32) * t).round() as u8,
-        (a[2] as f32 + (b[2] as f32 - a[2] as f32) * t).round() as u8,
-    ]
-}
-
-fn model_color_for_intensity(intensity: f32, palette: ThemePalette) -> [u8; 3] {
-    let t = intensity.clamp(0.0, 1.0);
-    if t < 0.58 {
-        mix_color(palette.shadow, palette.mid, t / 0.58)
-    } else {
-        mix_color(palette.mid, palette.highlight, (t - 0.58) / 0.42)
-    }
-}
-
 fn sample_material(
     scene: &SceneCpu,
     material_index: Option<usize>,
@@ -646,76 +642,6 @@ fn bilerp(c00: f32, c10: f32, c01: f32, c11: f32, tx: f32, ty: f32) -> f32 {
     let a = c00 + (c10 - c00) * tx;
     let b = c01 + (c11 - c01) * tx;
     a + (b - a) * ty
-}
-
-fn luminance(rgb: [f32; 3]) -> f32 {
-    (rgb[0] * 0.2126 + rgb[1] * 0.7152 + rgb[2] * 0.0722).clamp(0.0, 1.0)
-}
-
-fn scale_rgb(rgb: [f32; 3], scale: f32) -> [f32; 3] {
-    [
-        (rgb[0] * scale).clamp(0.0, 1.0),
-        (rgb[1] * scale).clamp(0.0, 1.0),
-        (rgb[2] * scale).clamp(0.0, 1.0),
-    ]
-}
-
-fn to_display_rgb(rgb: [f32; 3]) -> [u8; 3] {
-    [
-        (linear_to_srgb(rgb[0]).clamp(0.0, 1.0) * 255.0)
-            .round()
-            .clamp(0.0, 255.0) as u8,
-        (linear_to_srgb(rgb[1]).clamp(0.0, 1.0) * 255.0)
-            .round()
-            .clamp(0.0, 255.0) as u8,
-        (linear_to_srgb(rgb[2]).clamp(0.0, 1.0) * 255.0)
-            .round()
-            .clamp(0.0, 255.0) as u8,
-    ]
-}
-
-fn color_scale_from_tonemap(base_luma: f32, target_intensity: f32) -> f32 {
-    if base_luma <= 1e-4 {
-        target_intensity.max(0.12)
-    } else {
-        (target_intensity / base_luma).clamp(0.35, 2.6)
-    }
-}
-
-fn clarity_saturation_gain(clarity: ClarityProfile) -> f32 {
-    match clarity {
-        ClarityProfile::Balanced => 1.00,
-        ClarityProfile::Sharp => 1.04,
-        ClarityProfile::Extreme => 1.10,
-    }
-}
-
-fn srgb_to_linear(c: f32) -> f32 {
-    let v = c.clamp(0.0, 1.0);
-    if v <= 0.04045 {
-        v / 12.92
-    } else {
-        ((v + 0.055) / 1.055).powf(2.4)
-    }
-}
-
-fn linear_to_srgb(c: f32) -> f32 {
-    let v = c.max(0.0);
-    if v <= 0.003_130_8 {
-        12.92 * v
-    } else {
-        1.055 * v.powf(1.0 / 2.4) - 0.055
-    }
-}
-
-fn boost_saturation(rgb: [f32; 3], saturation_gain: f32) -> [f32; 3] {
-    let sat = saturation_gain.clamp(0.6, 1.8);
-    let l = luminance(rgb);
-    [
-        (l + (rgb[0] - l) * sat).clamp(0.0, 1.0),
-        (l + (rgb[1] - l) * sat).clamp(0.0, 1.0),
-        (l + (rgb[2] - l) * sat).clamp(0.0, 1.0),
-    ]
 }
 
 fn project_root_screen(
@@ -2118,58 +2044,6 @@ fn update_safe_visibility_state(scratch: &mut RenderScratch, profile: BraillePro
     }
 }
 
-fn push_histogram(histogram: &mut [u32; 64], count: &mut u32, value: f32) {
-    let v = value.clamp(0.0, 1.0);
-    let idx = ((v * ((histogram.len() - 1) as f32)).round() as usize).min(histogram.len() - 1);
-    histogram[idx] = histogram[idx].saturating_add(1);
-    *count = count.saturating_add(1);
-}
-
-fn percentile_from_histogram(histogram: &[u32; 64], count: u32, q: f32) -> f32 {
-    if count == 0 {
-        return 0.5;
-    }
-    let target = ((count as f32) * q.clamp(0.0, 1.0)).ceil() as u32;
-    let mut acc = 0_u32;
-    for (i, bin) in histogram.iter().enumerate() {
-        acc = acc.saturating_add(*bin);
-        if acc >= target {
-            return (i as f32) / ((histogram.len() - 1) as f32);
-        }
-    }
-    1.0
-}
-
-fn update_exposure_from_histogram(
-    exposure: &mut f32,
-    histogram: &[u32; 64],
-    count: u32,
-    clarity: ClarityProfile,
-) {
-    if count == 0 {
-        return;
-    }
-    let p75 = percentile_from_histogram(histogram, count, 0.75).max(1e-3);
-    let desired_mid = match clarity {
-        ClarityProfile::Balanced => 0.52,
-        ClarityProfile::Sharp => 0.58,
-        ClarityProfile::Extreme => 0.64,
-    };
-    let target = (desired_mid / p75).clamp(0.50, 3.2);
-    *exposure = (*exposure + (target - *exposure) * 0.14).clamp(0.28, 3.8);
-}
-
-fn tone_map_intensity(raw: f32, floor: f32, gamma: f32, exposure: f32) -> f32 {
-    let boosted = (raw.clamp(0.0, 1.0) * exposure).clamp(0.0, 1.4);
-    let mapped = floor + (1.0 - floor) * boosted.clamp(0.0, 1.0).powf(gamma);
-    mapped.clamp(0.0, 1.0)
-}
-
-pub fn exposure_bias_multiplier(bias: f32) -> f32 {
-    let clamped = bias.clamp(-0.5, 0.8);
-    (2.0_f32).powf(clamped).clamp(0.70, 1.80)
-}
-
 fn glyph_for_intensity(intensity: f32, charset: &[char]) -> char {
     if charset.is_empty() {
         return ' ';
@@ -2191,131 +2065,6 @@ fn glyph_intensity(glyph: char, charset: &[char]) -> f32 {
         0.0
     } else {
         1.0
-    }
-}
-
-fn visible_cell_ratio(frame: &FrameBuffers) -> f32 {
-    let total = frame.depth.len();
-    if total == 0 {
-        return 0.0;
-    }
-    let visible = frame.depth.iter().filter(|depth| depth.is_finite()).count();
-    (visible as f32) / (total as f32)
-}
-
-fn apply_visible_metrics(
-    stats: &mut RenderStats,
-    frame: &FrameBuffers,
-    subject_depth_cells: &[f32],
-    frame_width: u16,
-    frame_height: u16,
-) {
-    stats.visible_cell_ratio = visible_cell_ratio(frame);
-    stats.visible_centroid_px = stats.root_screen_px;
-    stats.visible_bbox_px = None;
-    stats.visible_bbox_aspect = 0.0;
-    stats.visible_height_ratio = 0.0;
-    stats.subject_visible_ratio = 0.0;
-    stats.subject_visible_height_ratio = 0.0;
-    stats.subject_centroid_px = None;
-    stats.subject_bbox_px = None;
-    if frame.width == 0 || frame.height == 0 {
-        return;
-    }
-
-    let width = usize::from(frame.width);
-    let height = usize::from(frame.height);
-    let mut visible = 0usize;
-    let mut sum_x = 0.0f32;
-    let mut sum_y = 0.0f32;
-    let mut min_x = width;
-    let mut min_y = height;
-    let mut max_x = 0usize;
-    let mut max_y = 0usize;
-
-    for y in 0..height {
-        for x in 0..width {
-            let idx = y * width + x;
-            if !frame.depth[idx].is_finite() {
-                continue;
-            }
-            visible = visible.saturating_add(1);
-            sum_x += x as f32 + 0.5;
-            sum_y += y as f32 + 0.5;
-            min_x = min_x.min(x);
-            min_y = min_y.min(y);
-            max_x = max_x.max(x);
-            max_y = max_y.max(y);
-        }
-    }
-    if visible == 0 {
-        return;
-    }
-
-    let silhouette_centroid = (sum_x / visible as f32, sum_y / visible as f32);
-    if stats.visible_centroid_px.is_none() {
-        stats.visible_centroid_px = Some(silhouette_centroid);
-    }
-    stats.visible_bbox_px = Some((
-        min_x as u16,
-        min_y as u16,
-        max_x.min(width.saturating_sub(1)) as u16,
-        max_y.min(height.saturating_sub(1)) as u16,
-    ));
-    let bbox_w = (max_x.saturating_sub(min_x) + 1) as f32;
-    let bbox_h = (max_y.saturating_sub(min_y) + 1) as f32;
-    stats.visible_bbox_aspect = if bbox_h > f32::EPSILON {
-        bbox_w / bbox_h
-    } else {
-        0.0
-    };
-    stats.visible_height_ratio = (bbox_h / (frame.height as f32)).clamp(0.0, 1.0);
-
-    let fw = usize::from(frame_width.max(1));
-    let fh = usize::from(frame_height.max(1));
-    if subject_depth_cells.len() < fw.saturating_mul(fh) {
-        return;
-    }
-    let mut subject_visible = 0usize;
-    let mut subject_sum_x = 0.0f32;
-    let mut subject_sum_y = 0.0f32;
-    let mut smin_x = fw;
-    let mut smin_y = fh;
-    let mut smax_x = 0usize;
-    let mut smax_y = 0usize;
-    for y in 0..fh {
-        for x in 0..fw {
-            let idx = y * fw + x;
-            if !subject_depth_cells[idx].is_finite() {
-                continue;
-            }
-            subject_visible = subject_visible.saturating_add(1);
-            subject_sum_x += x as f32 + 0.5;
-            subject_sum_y += y as f32 + 0.5;
-            smin_x = smin_x.min(x);
-            smin_y = smin_y.min(y);
-            smax_x = smax_x.max(x);
-            smax_y = smax_y.max(y);
-        }
-    }
-    if subject_visible == 0 {
-        return;
-    }
-    stats.subject_visible_ratio = (subject_visible as f32) / (fw.saturating_mul(fh).max(1) as f32);
-    let sbbox_h = (smax_y.saturating_sub(smin_y) + 1) as f32;
-    stats.subject_visible_height_ratio = (sbbox_h / (fh as f32)).clamp(0.0, 1.0);
-    stats.subject_centroid_px = Some((
-        subject_sum_x / subject_visible as f32,
-        subject_sum_y / subject_visible as f32,
-    ));
-    stats.subject_bbox_px = Some((
-        smin_x as u16,
-        smin_y as u16,
-        smax_x.min(fw.saturating_sub(1)) as u16,
-        smax_y.min(fh.saturating_sub(1)) as u16,
-    ));
-    if stats.visible_centroid_px.is_none() {
-        stats.visible_centroid_px = stats.subject_centroid_px;
     }
 }
 

@@ -3,6 +3,8 @@ use std::{
     path::{Path, PathBuf},
 };
 
+use crate::runtime::config_parse::parse_bool;
+
 use crate::runtime::sync_profile::SyncProfileMode;
 use crate::scene::{
     AnsiQuantization, AudioReactiveMode, BrailleProfile, CameraAlignPreset, CameraControlMode,
@@ -722,14 +724,6 @@ pub fn load_gascii_config(path: &Path) -> GasciiConfig {
         }
     }
     cfg
-}
-
-fn parse_bool(input: &str) -> Option<bool> {
-    match input.trim().to_ascii_lowercase().as_str() {
-        "1" | "true" | "yes" | "on" => Some(true),
-        "0" | "false" | "no" | "off" => Some(false),
-        _ => None,
-    }
 }
 
 #[cfg(test)]

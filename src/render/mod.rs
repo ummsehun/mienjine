@@ -3,6 +3,9 @@ pub mod backend_cpu;
 pub mod background;
 pub mod frame;
 pub mod material_morph;
+mod renderer_color;
+mod renderer_exposure;
+mod renderer_metrics;
 pub mod renderer;
 
 #[cfg(feature = "gpu")]
