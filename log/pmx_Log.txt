@@ -206,3 +206,7 @@ warning: Bone morph 'BoneMorph' not supported in MVP.warning: Bone morph 'BoneMo
 warning: Morph 'GroupMorph' type not supported in MVP.
 
 warning: Morph 'GroupMorph' type not supported in MVP.
+warning: Bone morph 'BoneMorph' not supported in MVP.
+warning: Bone morph 'BoneMorph' not supported in MVP.
+warning: Morph 'GroupMorph' type not supported in MVP.
+warning: Morph 'GroupMorph' type not supported in MVP.

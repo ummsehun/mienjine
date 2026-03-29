@@ -12,6 +12,7 @@ use crate::render::backend_gpu::GpuRendererState;
 use super::{
     device::{GpuContext, GpuError},
     pipeline::GpuPipeline,
+    pipeline::Uniforms,
     resources::{GpuMesh, GpuTexture},
     texture::{GpuTexture as RenderTarget, TextureSize},
 };

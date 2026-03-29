@@ -109,7 +109,7 @@ pub(super) struct StartWizardState {
     pub(super) height: u16,
     pub(super) detected_cell_aspect: Option<f32>,
     #[cfg(feature = "gpu")]
-    gpu_available: bool,
+    pub(super) gpu_available: bool,
     pub(super) clip_duration_cache: HashMap<PathBuf, Option<f32>>,
     pub(super) audio_duration_cache: HashMap<PathBuf, Option<f32>>,
 }
