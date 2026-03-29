@@ -1,7 +1,5 @@
 use std::{collections::HashMap, fs, path::Path, path::PathBuf};
 
-use glam::Vec3;
-
 use crate::scene::{
     resolve_cell_aspect, AnsiQuantization, AudioReactiveMode, BrailleProfile, CameraAlignPreset,
     CameraControlMode, CameraFocusMode, CameraMode, CellAspectMode, CenterLockMode,
@@ -17,8 +15,7 @@ use crate::runtime::start_ui_helpers::{
 };
 
 use super::types::{
-    ModelBranch, StageChoice, StartSelection, StartWizardDefaults, StartWizardEvent,
-    StartWizardStep, UiBreakpoint,
+    ModelBranch, StageChoice, StartSelection, StartWizardDefaults, StartWizardStep, UiBreakpoint,
 };
 
 #[derive(Debug, Clone)]

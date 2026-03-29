@@ -37,6 +37,7 @@ pub(super) struct BootstrapState {
     pub(super) terminal: TerminalSession,
     pub(super) frame: FrameBuffers,
     pub(super) pipeline: FramePipeline,
+    pub(super) pmx_physics_state: Option<crate::runtime::state::PmxPhysicsState>,
     pub(super) glyph_ramp: GlyphRamp,
     pub(super) render_scratch: RenderScratch,
     pub(super) display_cells: (u16, u16),
@@ -151,6 +152,7 @@ pub(super) fn bootstrap_runtime(
         );
     }
     let pipeline = FramePipeline::new(&scene);
+    let pmx_physics_state = crate::runtime::state::PmxPhysicsState::from_scene(&scene);
     let glyph_ramp = GlyphRamp::from_config(&config);
     let render_scratch = RenderScratch::with_capacity(max_scene_vertices(&scene));
     let framing = compute_scene_framing(
@@ -344,6 +346,7 @@ pub(super) fn bootstrap_runtime(
         terminal,
         frame,
         pipeline,
+        pmx_physics_state,
         glyph_ramp,
         render_scratch,
         display_cells,

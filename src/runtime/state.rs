@@ -6,9 +6,11 @@ use crate::scene::{
     RenderBackend, RenderConfig, RenderMode, RenderOutputMode,
 };
 
+mod pmx_physics;
 mod quality;
 mod quality_tuning;
 
+pub(crate) use pmx_physics::PmxPhysicsState;
 pub(crate) use quality::{
     apply_runtime_contrast_preset, dynamic_clip_planes, AutoRadiusGuard, CenterLockState,
     DistanceClampGuard, ExposureAutoBoost, RuntimeAdaptiveQuality, ScreenFitController,

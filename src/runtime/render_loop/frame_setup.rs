@@ -55,6 +55,7 @@ pub(super) fn build_frame_config(
         state.base_triangle_stride,
         state.base_min_triangle_area_px2,
         state.adaptive_quality.lod_level,
+        state.is_pmx_scene,
     );
     let prev_subject_height_ratio = if state.last_render_stats.subject_visible_height_ratio > 0.0 {
         state.last_render_stats.subject_visible_height_ratio

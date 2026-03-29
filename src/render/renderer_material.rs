@@ -1,9 +1,9 @@
-use glam::Vec2;
+use glam::{Vec2, Vec3};
 
 use crate::render::material_morph::apply_material_morph_to_index;
 use crate::scene::{
-    MaterialAlphaMode, MaterialCpu, RenderConfig, SceneCpu, TextureColorSpace, TextureFilterMode,
-    TextureSamplerMode, TextureSamplingMode,
+    MaterialAlphaMode, MaterialToonSource, RenderConfig, SceneCpu, TextureColorSpace,
+    TextureFilterMode, TextureSamplerMode, TextureSamplingMode, TextureWrapMode,
 };
 
 use super::renderer_color::srgb_to_linear;
@@ -54,6 +54,8 @@ pub(super) fn sample_material(
     material_index: Option<usize>,
     uv0: Vec2,
     uv1: Vec2,
+    world_normal: Vec3,
+    lighting: f32,
     depth: f32,
     vertex_color: [f32; 4],
     config: &RenderConfig,
@@ -143,6 +145,68 @@ pub(super) fn sample_material(
                 color[3] *= sampled[3];
             }
         }
+
+        if let Some(texture_index) = material.sphere_texture {
+            if let Some(texture) = scene.textures.get(texture_index) {
+                let sphere_uv = sphere_map_uv(world_normal);
+                let sampling_mode =
+                    prefer_sampling_for_focus(config.texture_sampling, config.camera_focus);
+                let sampled = sample_texture_rgba(
+                    texture,
+                    sphere_uv,
+                    sampling_mode,
+                    config.texture_v_origin,
+                    TextureWrapMode::Repeat,
+                    TextureWrapMode::Repeat,
+                    0,
+                );
+                let sample_rgb = match texture.color_space {
+                    TextureColorSpace::Srgb => [
+                        srgb_to_linear(sampled[0]),
+                        srgb_to_linear(sampled[1]),
+                        srgb_to_linear(sampled[2]),
+                    ],
+                    TextureColorSpace::Linear => [sampled[0], sampled[1], sampled[2]],
+                };
+                color[0] *= sample_rgb[0];
+                color[1] *= sample_rgb[1];
+                color[2] *= sample_rgb[2];
+            }
+        }
+
+        if let Some(toon_source) = material.toon_source {
+            let toon_rgb = match toon_source {
+                MaterialToonSource::Separate(texture_index) => scene
+                    .textures
+                    .get(texture_index)
+                    .map(|texture| {
+                        let sampling_mode =
+                            prefer_sampling_for_focus(config.texture_sampling, config.camera_focus);
+                        let sampled = sample_texture_rgba(
+                            texture,
+                            Vec2::new(lighting.clamp(0.0, 1.0), 0.5),
+                            sampling_mode,
+                            config.texture_v_origin,
+                            TextureWrapMode::ClampToEdge,
+                            TextureWrapMode::ClampToEdge,
+                            0,
+                        );
+                        match texture.color_space {
+                            TextureColorSpace::Srgb => [
+                                srgb_to_linear(sampled[0]),
+                                srgb_to_linear(sampled[1]),
+                                srgb_to_linear(sampled[2]),
+                            ],
+                            TextureColorSpace::Linear => [sampled[0], sampled[1], sampled[2]],
+                        }
+                    })
+                    .unwrap_or_else(|| builtin_toon_ramp(0, lighting)),
+                MaterialToonSource::BuiltIn(index) => builtin_toon_ramp(index, lighting),
+            };
+            color[0] *= toon_rgb[0];
+            color[1] *= toon_rgb[1];
+            color[2] *= toon_rgb[2];
+        }
     }
     out.albedo_linear = [
         color[0].clamp(0.0, 1.0),
@@ -151,4 +215,23 @@ pub(super) fn sample_material(
     ];
     out.alpha = color[3].clamp(0.0, 1.0);
     out
+}
+
+fn sphere_map_uv(normal: Vec3) -> Vec2 {
+    let n = normal.normalize_or_zero();
+    let phi = n.z.atan2(n.x);
+    let theta = n.y.clamp(-1.0, 1.0).asin();
+    Vec2::new(
+        0.5 + phi / (2.0 * std::f32::consts::PI),
+        0.5 - theta / std::f32::consts::PI,
+    )
+}
+
+fn builtin_toon_ramp(index: u8, lighting: f32) -> [f32; 3] {
+    let t = lighting.clamp(0.0, 1.0);
+    let steps = 9.0;
+    let band = (t * steps).round() / steps;
+    let dark = (0.22 + (index as f32).clamp(0.0, 9.0) * 0.018).clamp(0.18, 0.42);
+    let value = (dark + (1.0 - dark) * band).clamp(0.0, 1.0);
+    [value, value, value]
 }

@@ -1,4 +1,5 @@
 use super::*;
+use crate::runtime::start_ui_helpers::breakpoint_for;
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 use ratatui::{backend::TestBackend, Terminal};
 
@@ -86,6 +87,25 @@ fn transitions_model_to_confirm_with_enter() {
 }
 
 #[test]
+fn pmx_flow_transitions_model_to_motion_then_music() {
+    let mut state = test_state();
+    state.branch = ModelBranch::PmxVmd;
+    state.step = StartWizardStep::Model;
+
+    assert!(matches!(
+        state.apply_event(key(KeyCode::Enter)),
+        StartWizardAction::Continue
+    ));
+    assert_eq!(state.step, StartWizardStep::Motion);
+
+    assert!(matches!(
+        state.apply_event(key(KeyCode::Enter)),
+        StartWizardAction::Continue
+    ));
+    assert_eq!(state.step, StartWizardStep::Music);
+}
+
+#[test]
 fn esc_moves_back_or_cancels() {
     let mut state = test_state();
 
@@ -134,6 +154,19 @@ fn motion_step_esc_returns_to_model() {
         StartWizardAction::Continue
     ));
     assert_eq!(state.step, StartWizardStep::Model);
+}
+
+#[test]
+fn music_step_esc_returns_to_motion_for_pmx_branch() {
+    let mut state = test_state();
+    state.branch = ModelBranch::PmxVmd;
+    state.step = StartWizardStep::Music;
+
+    assert!(matches!(
+        state.apply_event(key(KeyCode::Esc)),
+        StartWizardAction::Continue
+    ));
+    assert_eq!(state.step, StartWizardStep::Motion);
 }
 
 #[test]

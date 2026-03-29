@@ -4,7 +4,6 @@ use crate::{
     assets::vmd_motion::parse_vmd_motion,
     cli::{RunSceneArg, StartArgs},
     loader,
-    render::backend_gpu::GpuRendererState,
     runtime::{
         app_render_config::render_config_from_start,
         asset_discovery::{
@@ -14,7 +13,6 @@ use crate::{
         },
         audio_sync::prepare_audio_sync,
         config::GasciiConfig,
-        interaction::max_scene_vertices,
         options::{
             default_color_mode_for_mode, resolve_effective_camera_mode,
             resolve_effective_color_mode, resolve_sync_options_for_start,
@@ -24,9 +22,9 @@ use crate::{
         pmx_log,
         render_loop::run_scene_interactive,
         start_ui::{run_start_wizard, StageStatus, StartWizardDefaults},
-        state::{resolve_runtime_backend, RuntimeCameraSettings},
+        state::RuntimeCameraSettings,
     },
-    scene::{resolve_cell_aspect, RenderMode},
+    scene::RenderMode,
 };
 
 use crate::runtime::app::{

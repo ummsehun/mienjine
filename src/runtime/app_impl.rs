@@ -9,6 +9,7 @@ use anyhow::{bail, Context, Result};
 
 use crate::{
     animation::ChannelTarget,
+    assets::vmd_motion::parse_vmd_motion,
     cli::{
         BenchArgs, BenchSceneArg, Cli, Commands, PreprocessArgs, PreviewArgs, RunArgs, RunSceneArg,
     },
@@ -100,7 +101,34 @@ fn run_interactive(args: RunArgs) -> Result<()> {
         resolved_camera_vmd_path.as_deref(),
     );
     let sync = resolve_sync_options_for_run(&args, &runtime_cfg, sync_profile_entry.as_ref());
-    let (mut scene, animation_index, rotates_without_animation) = load_scene_for_run(&args)?;
+    let (mut scene, mut animation_index, rotates_without_animation) = load_scene_for_run(&args)?;
+
+    if matches!(args.scene, RunSceneArg::Pmx) {
+        if let Some(motion_path) = args.motion_vmd.as_deref() {
+            match parse_vmd_motion(motion_path) {
+                Ok(vmd) => {
+                    let clip = vmd.to_clip_for_scene(&scene);
+                    if clip.channels.is_empty() {
+                        eprintln!(
+                            "warning: VMD clip has no matched channels; bone/morph names may not match this PMX."
+                        );
+                    }
+                    scene.animations.push(clip);
+                    animation_index = if scene.animations.is_empty() {
+                        None
+                    } else {
+                        Some(scene.animations.len() - 1)
+                    };
+                }
+                Err(err) => {
+                    eprintln!(
+                        "warning: failed to parse PMX motion VMD {}: {err}",
+                        motion_path.display()
+                    );
+                }
+            }
+        }
+    }
     let stage_dir = resolved_stage_dir(&args.stage_dir, &runtime_cfg);
     let stage_selector = resolved_stage_selector(args.stage.as_deref(), &runtime_cfg);
     let stage_entries = discover_stage_sets(&stage_dir);
@@ -153,12 +181,32 @@ fn run_interactive(args: RunArgs) -> Result<()> {
         vmd_path: resolved_camera_vmd_path.clone(),
         look_speed: visual.camera_look_speed,
     };
+
+    let clip_duration_secs = animation_index
+        .and_then(|idx| scene.animations.get(idx))
+        .map(|clip| clip.duration);
+    let audio_sync = crate::runtime::audio_sync::prepare_audio_sync(
+        args.music.as_deref(),
+        clip_duration_secs,
+        sync.sync_speed_mode,
+    );
+    if args.music.is_some() && audio_sync.is_none() {
+        eprintln!("warning: audio playback unavailable. continuing in silent mode.");
+    }
+
+    if matches!(args.scene, RunSceneArg::Pmx)
+        && args.motion_vmd.is_some()
+        && animation_index.is_none()
+    {
+        eprintln!("warning: no animation clip was selected after PMX+VMD import.");
+    }
+
     run_scene_interactive(
         scene,
         animation_index,
         rotates_without_animation,
         config,
-        None,
+        audio_sync,
         sync.sync_offset_ms,
         args.orbit_speed,
         args.orbit_radius,
@@ -345,7 +393,7 @@ fn bench(args: BenchArgs) -> Result<()> {
 
     while started.elapsed() < benchmark_duration {
         let elapsed = started.elapsed().as_secs_f32();
-        pipeline.prepare_frame(&scene, elapsed, animation_index);
+        pipeline.prepare_frame(&scene, elapsed, animation_index, None, 0.0);
         let stats = render_frame_with_backend(
             &mut gpu_renderer_state,
             &mut frame,

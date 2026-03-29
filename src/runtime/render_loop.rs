@@ -142,9 +142,15 @@ pub(crate) fn run_scene_interactive(
             state.config.sync_kp,
             clip_duration,
         );
-        state
-            .pipeline
-            .prepare_frame(&state.scene, animation_time, state.animation_index);
+        let scene = &state.scene;
+        let physics_state = state.pmx_physics_state.as_mut();
+        state.pipeline.prepare_frame(
+            scene,
+            animation_time,
+            state.animation_index,
+            physics_state,
+            dt,
+        );
         let rotation = if state.animation_index.is_some() {
             0.0
         } else if state.model_spin_enabled {

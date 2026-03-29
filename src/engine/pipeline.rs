@@ -1,6 +1,7 @@
 use glam::Mat4;
 
 use crate::engine::pmx_rig::{compute_bone_position, solve_ik_chain_ccd};
+use crate::runtime::state::PmxPhysicsState;
 use crate::{animation::ChannelTarget, scene::NodePose};
 use crate::{
     animation::{
@@ -34,11 +35,13 @@ impl FramePipeline {
         }
     }
 
-    pub fn prepare_frame(
+    pub(crate) fn prepare_frame(
         &mut self,
         scene: &SceneCpu,
         elapsed_seconds: f32,
         anim_index: Option<usize>,
+        mut physics_state: Option<&mut PmxPhysicsState>,
+        physics_dt: f32,
     ) {
         reset_poses_from_nodes(&scene.nodes, &mut self.poses);
         seed_node_morph_weights(scene, &mut self.node_morph_weights);
@@ -75,10 +78,8 @@ impl FramePipeline {
         // PMX IK solve: adjust joint rotations after animation sampling
         if let Some(rig_meta) = &scene.pmx_rig_meta {
             for chain in &rig_meta.ik_chains {
-                // For MVP, use the current effector position as target
-                // In full MMD, there would be separate IK target bones animated
                 let target_pos =
-                    compute_bone_position(chain.target_bone_index, &scene.nodes, &self.poses);
+                    compute_bone_position(chain.controller_bone_index, &scene.nodes, &self.poses);
                 solve_ik_chain_ccd(chain, &scene.nodes, &mut self.poses, target_pos);
             }
         }
@@ -89,6 +90,15 @@ impl FramePipeline {
             &mut self.globals,
             &mut self.globals_visited,
         );
+        if let Some(physics) = physics_state.as_deref_mut() {
+            physics.step(scene, &mut self.poses, &self.globals, physics_dt);
+            compute_global_matrices_in_place(
+                &scene.nodes,
+                &self.poses,
+                &mut self.globals,
+                &mut self.globals_visited,
+            );
+        }
         compute_skin_matrices_in_place(scene, &self.globals, &mut self.skin_matrices);
         resolve_instance_morph_weights(
             scene,
@@ -186,6 +196,7 @@ mod tests {
             indices: vec![[0, 0, 0]],
             joints4: None,
             weights4: None,
+            sdef_vertices: None,
             morph_targets: vec![MorphTargetCpu {
                 name: Some("smile".to_owned()),
                 position_deltas: vec![Vec3::new(0.0, 1.0, 0.0)],
@@ -235,13 +246,124 @@ mod tests {
             animations: vec![primary, facial],
             root_center_node: Some(0),
             pmx_rig_meta: None,
+            pmx_physics_meta: None,
             material_morphs: Vec::new(),
         };
 
         let mut pipeline = FramePipeline::new(&scene);
-        pipeline.prepare_frame(&scene, 1.0, Some(0));
+        pipeline.prepare_frame(&scene, 1.0, Some(0), None, 0.0);
         let applied = pipeline.morph_weights_by_instance()[0][0];
         assert!((applied - 0.5).abs() < 1e-5);
+    }
+
+    #[test]
+    fn prepare_frame_applies_pmx_physics_before_skinning() {
+        let scene = SceneCpu {
+            meshes: Vec::new(),
+            materials: Vec::new(),
+            textures: Vec::new(),
+            skins: Vec::new(),
+            nodes: vec![Node {
+                name: Some("root".to_owned()),
+                parent: None,
+                children: Vec::new(),
+                base_translation: Vec3::ZERO,
+                base_rotation: Quat::IDENTITY,
+                base_scale: Vec3::ONE,
+            }],
+            mesh_instances: Vec::new(),
+            animations: Vec::new(),
+            root_center_node: Some(0),
+            pmx_rig_meta: None,
+            pmx_physics_meta: Some(crate::engine::pmx_rig::PmxPhysicsMeta {
+                rigid_bodies: vec![crate::engine::pmx_rig::PmxRigidBodyCpu {
+                    name: "rb".to_owned(),
+                    name_en: "rb".to_owned(),
+                    bone_index: 0,
+                    group: 0,
+                    un_collision_group_flag: 0,
+                    form: crate::engine::pmx_rig::PmxRigidShape::Sphere,
+                    size: Vec3::splat(0.1),
+                    position: Vec3::new(0.0, 1.0, 0.0),
+                    rotation: Vec3::ZERO,
+                    mass: 1.0,
+                    move_resist: 0.0,
+                    rotation_resist: 0.0,
+                    repulsion: 0.0,
+                    friction: 0.0,
+                    calc_method: crate::engine::pmx_rig::PmxRigidCalcMethod::Dynamic,
+                }],
+                joints: Vec::new(),
+            }),
+            material_morphs: Vec::new(),
+        };
+
+        let mut pipeline = FramePipeline::new(&scene);
+        let mut physics = PmxPhysicsState::from_scene(&scene).expect("physics state");
+        pipeline.prepare_frame(&scene, 0.0, None, Some(&mut physics), 0.2);
+
+        let root_y = pipeline.globals()[0].transform_point3(Vec3::ZERO).y;
+        assert!(root_y < 1.0);
+    }
+
+    #[test]
+    fn prepare_frame_applies_ik_using_controller_target() {
+        let scene = SceneCpu {
+            meshes: Vec::new(),
+            materials: Vec::new(),
+            textures: Vec::new(),
+            skins: Vec::new(),
+            nodes: vec![
+                Node {
+                    name: Some("controller".to_owned()),
+                    parent: None,
+                    children: Vec::new(),
+                    base_translation: Vec3::new(0.0, 1.0, 0.0),
+                    base_rotation: Quat::IDENTITY,
+                    base_scale: Vec3::ONE,
+                },
+                Node {
+                    name: Some("joint".to_owned()),
+                    parent: None,
+                    children: vec![2],
+                    base_translation: Vec3::ZERO,
+                    base_rotation: Quat::IDENTITY,
+                    base_scale: Vec3::ONE,
+                },
+                Node {
+                    name: Some("effector".to_owned()),
+                    parent: Some(1),
+                    children: Vec::new(),
+                    base_translation: Vec3::new(1.0, 0.0, 0.0),
+                    base_rotation: Quat::IDENTITY,
+                    base_scale: Vec3::ONE,
+                },
+            ],
+            mesh_instances: Vec::new(),
+            animations: Vec::new(),
+            root_center_node: Some(0),
+            pmx_rig_meta: Some(crate::engine::pmx_rig::PmxRigMeta {
+                ik_chains: vec![crate::engine::pmx_rig::IKChain {
+                    controller_bone_index: 0,
+                    target_bone_index: 2,
+                    chain_root_bone_index: 1,
+                    iterations: 8,
+                    limit_angle: 1.0,
+                    links: vec![crate::engine::pmx_rig::IKLink {
+                        bone_index: 1,
+                        angle_limits: None,
+                    }],
+                }],
+            }),
+            pmx_physics_meta: None,
+            material_morphs: Vec::new(),
+        };
+
+        let mut pipeline = FramePipeline::new(&scene);
+        pipeline.prepare_frame(&scene, 0.0, None, None, 0.0);
+
+        let effector_world = pipeline.globals()[2].transform_point3(Vec3::ZERO);
+        assert!(effector_world.y > 0.5);
     }
 }
 

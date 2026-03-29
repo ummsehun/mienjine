@@ -10,9 +10,9 @@ use crate::scene::{
     AnsiQuantization, AudioReactiveMode, BrailleProfile, CameraAlignPreset, CameraControlMode,
     CameraFocusMode, CameraMode, CellAspectMode, CenterLockMode, CinematicCameraMode,
     ClarityProfile, ColorMode, ContrastProfile, DetailProfile, GraphicsProtocol, KittyCompression,
-    KittyInternalResPreset, KittyTransport, PerfProfile, RecoverStrategy, RenderBackend,
-    RenderOutputMode, StageRole, SyncPolicy, SyncSpeedMode, TextureSamplerMode,
-    TextureSamplingMode, TextureVOrigin, ThemeStyle,
+    KittyInternalResPreset, KittyTransport, PerfProfile, RenderBackend, RenderOutputMode,
+    StageRole, SyncPolicy, SyncSpeedMode, TextureSamplerMode, TextureSamplingMode, TextureVOrigin,
+    ThemeStyle,
 };
 
 #[test]

@@ -28,6 +28,10 @@ pub struct RunArgs {
     pub stage: Option<String>,
     #[arg(long)]
     pub anim: Option<String>,
+    #[arg(long)]
+    pub motion_vmd: Option<PathBuf>,
+    #[arg(long)]
+    pub music: Option<PathBuf>,
     #[arg(long, default_value = "assets/camera")]
     pub camera_dir: PathBuf,
     #[arg(long)]

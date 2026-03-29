@@ -24,6 +24,7 @@ pub struct MeshCpu {
     pub indices: Vec<[u32; 3]>,
     pub joints4: Option<Vec<[u16; 4]>>,
     pub weights4: Option<Vec<[f32; 4]>>,
+    pub sdef_vertices: Option<Vec<Option<SdefVertexCpu>>>,
     pub morph_targets: Vec<MorphTargetCpu>,
 }
 
@@ -43,10 +44,26 @@ pub struct SkinCpu {
     pub inverse_bind_mats: Vec<Mat4>,
 }
 
+#[derive(Debug, Clone, Copy)]
+pub struct SdefVertexCpu {
+    pub bone_index_1: u16,
+    pub bone_index_2: u16,
+    pub bone_weight_1: f32,
+    pub c: Vec3,
+    pub r0: Vec3,
+    pub r1: Vec3,
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum MaterialMorphFormula {
     Multiply = 0,
     Add = 1,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum MaterialToonSource {
+    Separate(usize),
+    BuiltIn(u8),
 }
 
 #[derive(Debug, Clone)]
@@ -80,6 +97,8 @@ pub struct MaterialCpu {
     pub base_color_wrap_t: TextureWrapMode,
     pub base_color_min_filter: TextureFilterMode,
     pub base_color_mag_filter: TextureFilterMode,
+    pub sphere_texture: Option<usize>,
+    pub toon_source: Option<MaterialToonSource>,
     pub emissive_factor: [f32; 3],
     pub alpha_mode: MaterialAlphaMode,
     pub alpha_cutoff: f32,
@@ -162,6 +181,7 @@ pub struct SceneCpu {
     pub animations: Vec<AnimationClip>,
     pub root_center_node: Option<usize>,
     pub pmx_rig_meta: Option<crate::engine::pmx_rig::PmxRigMeta>,
+    pub pmx_physics_meta: Option<crate::engine::pmx_rig::PmxPhysicsMeta>,
     pub material_morphs: Vec<MaterialMorphCpu>,
 }
 
@@ -268,6 +288,7 @@ pub fn cube_scene() -> SceneCpu {
         indices,
         joints4: None,
         weights4: None,
+        sdef_vertices: None,
         morph_targets: Vec::new(),
     };
 
@@ -296,6 +317,7 @@ pub fn cube_scene() -> SceneCpu {
         animations: Vec::new(),
         root_center_node: Some(0),
         pmx_rig_meta: None,
+        pmx_physics_meta: None,
         material_morphs: Vec::new(),
     }
 }

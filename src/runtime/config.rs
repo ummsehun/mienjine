@@ -9,7 +9,8 @@ pub mod sync;
 pub mod types;
 pub mod visual;
 
-pub mod tests;
+#[cfg(test)]
+mod tests;
 
 pub use types::{GasciiConfig, UiLanguage};
 

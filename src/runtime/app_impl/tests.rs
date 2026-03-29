@@ -223,6 +223,7 @@ fn default_animation_prefers_non_morph_clip() {
             indices: vec![[0, 0, 0]],
             joints4: None,
             weights4: None,
+            sdef_vertices: None,
             morph_targets: vec![MorphTargetCpu {
                 name: Some("move_up".to_owned()),
                 position_deltas: vec![Vec3::new(0.0, 1.0, 0.0)],
@@ -278,6 +279,7 @@ fn default_animation_prefers_non_morph_clip() {
         ],
         root_center_node: Some(0),
         pmx_rig_meta: None,
+        pmx_physics_meta: None,
         material_morphs: Vec::new(),
     };
 
@@ -319,6 +321,22 @@ fn pmx_surface_guardrails_clamp_sparse_rendering_on_small_subjects() {
     assert_eq!(cfg.triangle_stride, 1);
     assert!(cfg.min_triangle_area_px2 <= 0.12);
     assert!(cfg.edge_accent_strength <= 0.26);
+}
+
+#[test]
+fn adaptive_quality_keeps_material_color_for_pmx_even_in_perf_lod2() {
+    let mut cfg = RenderConfig::default();
+    cfg.material_color = true;
+    cfg.detail_profile = crate::scene::DetailProfile::Perf;
+    cfg.texture_sampling = crate::scene::TextureSamplingMode::Nearest;
+
+    crate::runtime::state::apply_adaptive_quality_tuning(&mut cfg, 1, 0.0, 2, true);
+
+    assert!(cfg.material_color);
+    assert!(matches!(
+        cfg.texture_sampling,
+        crate::scene::TextureSamplingMode::Bilinear
+    ));
 }
 
 #[test]

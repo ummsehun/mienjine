@@ -121,7 +121,11 @@ impl StartWizardState {
                 StartWizardAction::Continue
             }
             KeyCode::Esc => {
-                self.step = StartWizardStep::Model;
+                self.step = if matches!(self.branch, ModelBranch::PmxVmd) {
+                    StartWizardStep::Motion
+                } else {
+                    StartWizardStep::Model
+                };
                 StartWizardAction::Continue
             }
             _ => StartWizardAction::Continue,
@@ -144,7 +148,11 @@ impl StartWizardState {
                 StartWizardAction::Continue
             }
             KeyCode::Esc => {
-                self.step = StartWizardStep::Model;
+                self.step = if matches!(self.branch, ModelBranch::PmxVmd) {
+                    StartWizardStep::Motion
+                } else {
+                    StartWizardStep::Model
+                };
                 StartWizardAction::Continue
             }
             _ => StartWizardAction::Continue,

@@ -86,6 +86,7 @@ pub(crate) fn apply_adaptive_quality_tuning(
     base_triangle_stride: usize,
     base_min_triangle_area_px2: f32,
     lod_level: usize,
+    is_pmx_scene: bool,
 ) {
     let mut effective_lod = lod_level;
     if matches!(config.detail_profile, DetailProfile::Perf) {
@@ -105,7 +106,10 @@ pub(crate) fn apply_adaptive_quality_tuning(
     if effective_lod >= 1 {
         config.texture_sampling = TextureSamplingMode::Nearest;
     }
-    if effective_lod >= 2 && matches!(config.detail_profile, DetailProfile::Perf) {
+    if is_pmx_scene {
+        config.texture_sampling = TextureSamplingMode::Bilinear;
+    }
+    if !is_pmx_scene && effective_lod >= 2 && matches!(config.detail_profile, DetailProfile::Perf) {
         config.material_color = false;
     }
 }

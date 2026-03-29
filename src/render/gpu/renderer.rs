@@ -19,7 +19,7 @@ use super::{
     texture::{GpuTexture as RenderTarget, TextureSize},
 };
 
-use cache::{MaterialGpuParams, SceneSignature, TextureBindingKey};
+use cache::{SceneSignature, TextureBindingKey};
 
 #[cfg(feature = "gpu")]
 use super::stats::compute_gpu_render_stats;
@@ -466,7 +466,7 @@ mod tests {
         config.mode = RenderMode::Ascii;
 
         let mut pipeline = FramePipeline::new(&scene);
-        pipeline.prepare_frame(&scene, 0.0, None);
+        pipeline.prepare_frame(&scene, 0.0, None, None, 0.0);
 
         let _ = renderer
             .render(

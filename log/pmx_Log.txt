@@ -230,3 +230,174 @@ warning: Bone morph 'BoneMorph' not supported in MVP.warning: Bone morph 'BoneMo
 warning: Morph 'GroupMorph' type not supported in MVP.
 
 warning: Morph 'GroupMorph' type not supported in MVP.
+warning: Bone morph 'BoneMorph' not supported in MVP.
+warning: Bone morph 'BoneMorph' not supported in MVP.
+warning: Morph 'GroupMorph' type not supported in MVP.
+warning: Morph 'GroupMorph' type not supported in MVP.
+warning: Bone morph 'BoneMorph' not supported in MVP.
+warning: Bone morph 'BoneMorph' not supported in MVP.
+warning: Morph 'GroupMorph' type not supported in MVP.warning: Morph 'GroupMorph' type not supported in MVP.
+
+warning: Bone morph 'BoneMorph' not supported in MVP.warning: Bone morph 'BoneMorph' not supported in MVP.
+
+warning: Morph 'GroupMorph' type not supported in MVP.
+warning: Morph 'GroupMorph' type not supported in MVP.
+=== PMX+VMD import start ===
+PMX path: assets/pmx/miku/rabbit.pmx
+VMD path: assets/vmd/rabbit.vmd
+warning: PMX model has 120 rigid bodies (physics not supported in MVP).
+warning: PMX material 'body_skin' uses sphere texture (toon/sphere approximation not fully supported).
+warning: SDEF vertex weights approximated as BDEF2 (full SDEF not supported).
+PMX loaded: nodes=239, meshes=18, materials=18, material_morphs=6, ik_chains=7
+VMD parsed: model_name='Sour_Miku_White', bone_frames=219685, morph_frames=3696, duration=161.233s
+VMD clip built: channels=298, duration=161.233s
+PMX+VMD scene animations=1
+resolved animation_index=Some(0)
+warning: Bone morph 'BoneMorph' not supported in MVP.
+warning: Morph 'GroupMorph' type not supported in MVP.
+warning: Bone morph 'BoneMorph' not supported in MVP.
+warning: Morph 'GroupMorph' type not supported in MVP.
+warning: Bone morph 'BoneMorph' not supported in MVP.
+warning: Morph 'GroupMorph' type not supported in MVP.
+warning: Bone morph 'BoneMorph' not supported in MVP.warning: Bone morph 'BoneMorph' not supported in MVP.
+
+warning: Morph 'GroupMorph' type not supported in MVP.
+warning: Morph 'GroupMorph' type not supported in MVP.
+=== PMX+VMD import start ===
+PMX path: assets/pmx/miku/rabbit.pmx
+VMD path: assets/vmd/rabbit.vmd
+warning: PMX model has 120 rigid bodies (physics not supported in MVP).
+warning: PMX material 'body_skin' uses sphere texture (toon/sphere approximation not fully supported).
+warning: SDEF vertex weights approximated as BDEF2 (full SDEF not supported).
+PMX loaded: nodes=239, meshes=18, materials=18, material_morphs=6, ik_chains=7
+VMD parsed: model_name='Sour_Miku_White', bone_frames=219685, morph_frames=3696, duration=161.233s
+VMD clip built: channels=298, duration=161.233s
+PMX+VMD scene animations=1
+resolved animation_index=Some(0)
+warning: Bone morph 'BoneMorph' not supported in MVP.
+warning: Morph 'GroupMorph' type not supported in MVP.
+warning: Bone morph 'BoneMorph' not supported in MVP.
+warning: Morph 'GroupMorph' type not supported in MVP.
+warning: Bone morph 'BoneMorph' not supported in MVP.
+warning: Morph 'GroupMorph' type not supported in MVP.
+warning: Bone morph 'BoneMorph' not supported in MVP.
+warning: Morph 'GroupMorph' type not supported in MVP.
+warning: PMX model has 120 rigid bodies (physics not supported in MVP).
+warning: PMX material 'body_skin' uses sphere texture (toon/sphere approximation not fully supported).
+warning: SDEF vertex weights approximated as BDEF2 (full SDEF not supported).
+warning: PMX model has 120 rigid bodies (physics not supported in MVP).
+warning: PMX material 'body_skin' uses sphere texture (toon/sphere approximation not fully supported).
+warning: SDEF vertex weights approximated as BDEF2 (full SDEF not supported).
+warning: PMX model has 120 rigid bodies (physics not supported in MVP).
+warning: PMX material 'body_skin' uses sphere texture (toon/sphere approximation not fully supported).
+warning: SDEF vertex weights approximated as BDEF2 (full SDEF not supported).
+warning: Bone morph 'BoneMorph' not supported in MVP.
+warning: Morph 'GroupMorph' type not supported in MVP.
+warning: Bone morph 'BoneMorph' not supported in MVP.
+warning: Morph 'GroupMorph' type not supported in MVP.
+warning: PMX model has 120 rigid bodies (physics not supported in MVP).
+warning: PMX material 'body_skin' uses sphere texture (toon/sphere approximation not fully supported).
+warning: SDEF vertex weights approximated as BDEF2 (full SDEF not supported).
+warning: Bone morph 'BoneMorph' not supported in MVP.
+warning: Bone morph 'BoneMorph' not supported in MVP.
+warning: Morph 'GroupMorph' type not supported in MVP.
+warning: Morph 'GroupMorph' type not supported in MVP.
+warning: Bone morph 'BoneMorph' not supported in MVP.
+warning: Morph 'GroupMorph' type not supported in MVP.
+warning: Bone morph 'BoneMorph' not supported in MVP.
+warning: Morph 'GroupMorph' type not supported in MVP.
+warning: PMX model has 120 rigid bodies (physics not supported in MVP).
+warning: failed to load PMX texture '/Users/user/miku/assets/pmx/miku/tex/mikuv4x_body00.tga': The image format Tga is not supported. using fallback.
+warning: failed to load PMX texture '/Users/user/miku/assets/pmx/miku/tex/skin_s.bmp': The image format Bmp is not supported. using fallback.
+warning: failed to load PMX texture '/Users/user/miku/assets/pmx/miku/tex/toon_skin.bmp': The image format Bmp is not supported. using fallback.
+warning: failed to load PMX texture '/Users/user/miku/assets/pmx/miku/tex/body00_s.bmp': The image format Bmp is not supported. using fallback.
+warning: failed to load PMX texture '/Users/user/miku/assets/pmx/miku/tex/toon_defo.bmp': The image format Bmp is not supported. using fallback.
+warning: failed to load PMX texture '/Users/user/miku/assets/pmx/miku/tex/body01_s.bmp': The image format Bmp is not supported. using fallback.
+warning: failed to load PMX texture '/Users/user/miku/assets/pmx/miku/tex/face_Mikuv4x.tga': The image format Tga is not supported. using fallback.
+warning: failed to load PMX texture '/Users/user/miku/assets/pmx/miku/tex/hair_Mikuv4x.tga': The image format Tga is not supported. using fallback.
+warning: failed to load PMX texture '/Users/user/miku/assets/pmx/miku/tex/hair_s.bmp': The image format Bmp is not supported. using fallback.
+warning: failed to load PMX texture '/Users/user/miku/assets/pmx/miku/tex/toon_hair.bmp': The image format Bmp is not supported. using fallback.
+warning: failed to load PMX texture '/Users/user/miku/assets/pmx/miku/tex/body02_MikuAp.tga': The image format Tga is not supported. using fallback.
+warning: SDEF vertex weights approximated as BDEF2 (full SDEF not supported).
+warning: Bone morph 'BoneMorph' not supported in MVP.warning: Bone morph 'BoneMorph' not supported in MVP.
+
+warning: Morph 'GroupMorph' type not supported in MVP.
+warning: Morph 'GroupMorph' type not supported in MVP.
+warning: PMX model has 120 rigid bodies (physics not supported in MVP).
+warning: SDEF vertex weights approximated as BDEF2 (full SDEF not supported).
+=== PMX+VMD import start ===
+PMX path: assets/pmx/miku/rabbit.pmx
+VMD path: assets/vmd/rabbit.vmd
+warning: PMX model has 120 rigid bodies (physics not supported in MVP).
+warning: SDEF vertex weights approximated as BDEF2 (full SDEF not supported).
+PMX loaded: nodes=239, meshes=18, materials=18, material_morphs=6, ik_chains=7
+VMD parsed: model_name='Sour_Miku_White', bone_frames=219685, morph_frames=3696, duration=161.233s
+VMD clip built: channels=298, duration=161.233s
+PMX+VMD scene animations=1
+resolved animation_index=Some(0)
+warning: PMX model has 2 rigid bodies (physics not supported in MVP).
+warning: PMX model has 2 rigid bodies (physics approximated; joints/collision handling is limited).
+warning: Bone morph 'BoneMorph' not supported in MVP.
+warning: Bone morph 'BoneMorph' not supported in MVP.warning: Morph 'GroupMorph' type not supported in MVP.
+
+warning: Morph 'GroupMorph' type not supported in MVP.
+warning: PMX model has 120 rigid bodies (physics approximated; joints/collision handling is limited).
+warning: SDEF vertex weights approximated as BDEF2 (full SDEF not supported).
+warning: Bone morph 'BoneMorph' not supported in MVP.
+warning: Bone morph 'BoneMorph' not supported in MVP.
+warning: Morph 'GroupMorph' type not supported in MVP.
+warning: Morph 'GroupMorph' type not supported in MVP.
+warning: PMX model has 2 rigid bodies (physics approximated; joints/collision handling is limited).
+warning: Bone morph 'BoneMorph' not supported in MVP.
+warning: PMX model has 2 rigid bodies (physics approximated; joints/collision handling is limited).
+warning: Morph 'GroupMorph' type not supported in MVP.
+warning: Bone morph 'BoneMorph' not supported in MVP.
+warning: Morph 'GroupMorph' type not supported in MVP.
+warning: PMX model has 2 rigid bodies (physics approximated; joints/collision handling is limited).
+warning: Bone morph 'BoneMorph' not supported in MVP.
+warning: Morph 'GroupMorph' type not supported in MVP.
+warning: Bone morph 'BoneMorph' not supported in MVP.
+warning: Morph 'GroupMorph' type not supported in MVP.
+=== PMX+VMD import start ===
+PMX path: assets/pmx/miku/rabbit.pmx
+VMD path: assets/vmd/rabbit.vmd
+warning: PMX model has 120 rigid bodies (physics approximated; joints/collision handling is limited).
+PMX loaded: nodes=239, meshes=18, materials=18, material_morphs=6, ik_chains=7
+VMD parsed: model_name='Sour_Miku_White', bone_frames=219685, morph_frames=3696, duration=161.233s
+VMD clip built: channels=298, duration=161.233s
+PMX+VMD scene animations=1
+resolved animation_index=Some(0)
+warning: Bone morph 'BoneMorph' not supported in MVP.warning: PMX model has 2 rigid bodies (physics approximated; joints/collision handling is limited).
+
+warning: Morph 'GroupMorph' type not supported in MVP.
+warning: Bone morph 'BoneMorph' not supported in MVP.
+warning: Morph 'GroupMorph' type not supported in MVP.
+warning: Bone morph 'BoneMorph' not supported in MVP.
+warning: PMX model has 2 rigid bodies (physics approximated; joints/collision handling is limited).
+warning: Morph 'GroupMorph' type not supported in MVP.
+warning: Bone morph 'BoneMorph' not supported in MVP.
+warning: Morph 'GroupMorph' type not supported in MVP.
+warning: PMX model has 2 rigid bodies (physics approximated; joints/collision handling is limited).
+warning: Bone morph 'BoneMorph' not supported in MVP.
+warning: Morph 'GroupMorph' type not supported in MVP.
+warning: Bone morph 'BoneMorph' not supported in MVP.
+warning: Morph 'GroupMorph' type not supported in MVP.
+warning: PMX model has 2 rigid bodies (physics approximated; joints/collision handling is limited).
+warning: Bone morph 'BoneMorph' not supported in MVP.
+warning: Morph 'GroupMorph' type not supported in MVP.
+warning: Bone morph 'BoneMorph' not supported in MVP.
+warning: Morph 'GroupMorph' type not supported in MVP.
+warning: PMX model has 2 rigid bodies (physics approximated; joints/collision handling is limited).
+warning: Bone morph 'BoneMorph' not supported in MVP.
+warning: Morph 'GroupMorph' type not supported in MVP.
+warning: Bone morph 'BoneMorph' not supported in MVP.
+warning: Morph 'GroupMorph' type not supported in MVP.
+=== PMX+VMD import start ===
+PMX path: assets/pmx/miku/rabbit.pmx
+VMD path: assets/vmd/rabbit.vmd
+warning: PMX model has 120 rigid bodies (physics approximated; joints/collision handling is limited).
+PMX loaded: nodes=239, meshes=18, materials=18, material_morphs=6, ik_chains=7
+VMD parsed: model_name='Sour_Miku_White', bone_frames=219685, morph_frames=3696, duration=161.233s
+VMD clip built: channels=298, duration=161.233s
+PMX+VMD scene animations=1
+resolved animation_index=Some(0)

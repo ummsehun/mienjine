@@ -1,13 +1,12 @@
 //! Tests for the renderer module.
 
-use glam::Vec2;
+use glam::{Vec2, Vec3};
 
 use crate::render::background::theme_palette;
 use crate::render::renderer::braille::{braille_thresholds, compose_braille_cells};
 use crate::render::renderer::shading::contrast_params;
 use crate::render::renderer::{
-    self, encode_ansi_frame, exposure_bias_multiplier, BrailleSubpixelBuffers, FrameBuffers,
-    GlyphRamp,
+    encode_ansi_frame, exposure_bias_multiplier, BrailleSubpixelBuffers, FrameBuffers, GlyphRamp,
 };
 use crate::render::renderer_glyph::{glyph_for_intensity, select_charset};
 use crate::render::renderer_material::sample_material;
@@ -15,8 +14,9 @@ use crate::render::renderer_metrics::visible_cell_ratio;
 use crate::render::renderer_texture::{prefer_sampling_for_focus, select_mip_level};
 use crate::scene::{
     AnsiQuantization, BrailleProfile, CameraFocusMode, CellAspectMode, ColorMode,
-    MaterialAlphaMode, MaterialCpu, RenderConfig, RenderMode, TextureColorSpace, TextureCpu,
-    TextureFilterMode, TextureLevelCpu, TextureSamplingMode, TextureWrapMode, ThemeStyle,
+    MaterialAlphaMode, MaterialCpu, MaterialToonSource, RenderConfig, RenderMode,
+    TextureColorSpace, TextureCpu, TextureFilterMode, TextureLevelCpu, TextureSamplingMode,
+    TextureWrapMode, ThemeStyle,
 };
 
 #[test]
@@ -171,6 +171,8 @@ fn sample_scene_with_texture(
         base_color_wrap_t: TextureWrapMode::Repeat,
         base_color_min_filter: TextureFilterMode::Linear,
         base_color_mag_filter: TextureFilterMode::Linear,
+        sphere_texture: None,
+        toon_source: None,
         emissive_factor: [0.0, 0.0, 0.0],
         alpha_mode: MaterialAlphaMode::Opaque,
         alpha_cutoff: 0.5,
@@ -202,6 +204,8 @@ fn material_sampling_respects_texture_color_space() {
         Some(0),
         Vec2::ZERO,
         Vec2::ZERO,
+        Vec3::Y,
+        0.5,
         0.2,
         [1.0, 1.0, 1.0, 1.0],
         &cfg,
@@ -212,6 +216,8 @@ fn material_sampling_respects_texture_color_space() {
         Some(0),
         Vec2::ZERO,
         Vec2::ZERO,
+        Vec3::Y,
+        0.5,
         0.2,
         [1.0, 1.0, 1.0, 1.0],
         &cfg,
@@ -232,6 +238,8 @@ fn material_sampling_clamps_alpha_to_unit_interval() {
         Some(0),
         Vec2::ZERO,
         Vec2::ZERO,
+        Vec3::Y,
+        0.5,
         0.2,
         [1.0, 1.0, 1.5, 2.0],
         &cfg,
@@ -239,4 +247,52 @@ fn material_sampling_clamps_alpha_to_unit_interval() {
     );
     assert!((0.0..=1.0).contains(&sampled.alpha));
     assert!((sampled.alpha - 1.0).abs() < 1e-6);
+}
+
+#[test]
+fn material_sampling_applies_sphere_texture_and_builtin_toon() {
+    let sphere_scene = crate::scene::SceneCpu {
+        materials: vec![MaterialCpu {
+            base_color_factor: [1.0, 1.0, 1.0, 1.0],
+            base_color_texture: None,
+            base_color_tex_coord: 0,
+            base_color_uv_transform: None,
+            base_color_wrap_s: TextureWrapMode::Repeat,
+            base_color_wrap_t: TextureWrapMode::Repeat,
+            base_color_min_filter: TextureFilterMode::Linear,
+            base_color_mag_filter: TextureFilterMode::Linear,
+            sphere_texture: Some(0),
+            toon_source: Some(MaterialToonSource::BuiltIn(0)),
+            emissive_factor: [0.0, 0.0, 0.0],
+            alpha_mode: MaterialAlphaMode::Opaque,
+            alpha_cutoff: 0.5,
+            double_sided: false,
+        }],
+        textures: vec![TextureCpu {
+            width: 1,
+            height: 1,
+            rgba8: vec![64, 128, 255, 255],
+            source_format: "png".to_owned(),
+            color_space: TextureColorSpace::Srgb,
+            mip_levels: Vec::new(),
+        }],
+        ..crate::scene::SceneCpu::default()
+    };
+    let cfg = RenderConfig::default();
+
+    let sampled = sample_material(
+        &sphere_scene,
+        Some(0),
+        Vec2::ZERO,
+        Vec2::ZERO,
+        Vec3::new(0.3, 0.8, 0.5),
+        0.7,
+        0.2,
+        [1.0, 1.0, 1.0, 1.0],
+        &cfg,
+        &[],
+    );
+
+    assert!(sampled.albedo_linear[0] < 1.0);
+    assert!(sampled.albedo_linear[2] < 1.0);
 }

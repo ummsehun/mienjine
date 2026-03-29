@@ -3,7 +3,7 @@
 //! This module stores PMX-specific bone metadata that doesn't fit into the
 //! generic `SceneCpu`/`Node` structures, specifically IK chain definitions.
 
-use glam::{Quat, Vec3};
+use glam::{Mat4, Quat, Vec3};
 
 /// A single link in an IK chain.
 #[derive(Debug, Clone)]
@@ -18,6 +18,7 @@ pub struct IKLink {
 /// An IK chain definition from PMX.
 #[derive(Debug, Clone)]
 pub struct IKChain {
+    pub controller_bone_index: usize,
     /// The effector bone (end point) that IK tries to reach.
     pub target_bone_index: usize,
     /// Root of the IK chain (usually the first link).
@@ -42,6 +43,131 @@ impl PmxRigMeta {
     /// Returns true if there are no IK chains.
     pub fn is_empty(&self) -> bool {
         self.ik_chains.is_empty()
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum PmxRigidShape {
+    Sphere,
+    Box,
+    Capsule,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum PmxRigidCalcMethod {
+    Static,
+    Dynamic,
+    DynamicWithBonePosition,
+}
+
+#[derive(Debug, Clone)]
+pub struct PmxRigidBodyCpu {
+    pub name: String,
+    pub name_en: String,
+    pub bone_index: i32,
+    pub group: u8,
+    pub un_collision_group_flag: u16,
+    pub form: PmxRigidShape,
+    pub size: Vec3,
+    pub position: Vec3,
+    pub rotation: Vec3,
+    pub mass: f32,
+    pub move_resist: f32,
+    pub rotation_resist: f32,
+    pub repulsion: f32,
+    pub friction: f32,
+    pub calc_method: PmxRigidCalcMethod,
+}
+
+#[derive(Debug, Clone)]
+pub enum PmxJointKind {
+    Spring6Dof {
+        a_rigid_index: i32,
+        b_rigid_index: i32,
+        position: Vec3,
+        rotation: Vec3,
+        move_limit_down: Vec3,
+        move_limit_up: Vec3,
+        rotation_limit_down: Vec3,
+        rotation_limit_up: Vec3,
+        spring_const_move: Vec3,
+        spring_const_rotation: Vec3,
+    },
+    SixDof {
+        a_rigid_index: i32,
+        b_rigid_index: i32,
+        position: Vec3,
+        rotation: Vec3,
+        move_limit_down: Vec3,
+        move_limit_up: Vec3,
+        rotation_limit_down: Vec3,
+        rotation_limit_up: Vec3,
+    },
+    P2P {
+        a_rigid_index: i32,
+        b_rigid_index: i32,
+        position: Vec3,
+        rotation: Vec3,
+    },
+    ConeTwist {
+        a_rigid_index: i32,
+        b_rigid_index: i32,
+        swing_span1: f32,
+        swing_span2: f32,
+        twist_span: f32,
+        softness: f32,
+        bias_factor: f32,
+        relaxation_factor: f32,
+        damping: f32,
+        fix_thresh: f32,
+        enable_motor: bool,
+        max_motor_impulse: f32,
+        motor_target_in_constraint_space: Vec3,
+    },
+    Slider {
+        a_rigid_index: i32,
+        b_rigid_index: i32,
+        lower_linear_limit: f32,
+        upper_linear_limit: f32,
+        lower_angle_limit: f32,
+        upper_angle_limit: f32,
+        power_linear_motor: bool,
+        target_linear_motor_velocity: f32,
+        max_linear_motor_force: f32,
+        power_angler_motor: bool,
+        target_angler_motor_velocity: f32,
+        max_angler_motor_force: f32,
+    },
+    Hinge {
+        a_rigid_index: i32,
+        b_rigid_index: i32,
+        low: f32,
+        high: f32,
+        softness: f32,
+        bias_factor: f32,
+        relaxation_factor: f32,
+        enable_motor: bool,
+        target_velocity: f32,
+        max_motor_impulse: f32,
+    },
+}
+
+#[derive(Debug, Clone)]
+pub struct PmxJointCpu {
+    pub name: String,
+    pub name_en: String,
+    pub kind: PmxJointKind,
+}
+
+#[derive(Debug, Clone, Default)]
+pub struct PmxPhysicsMeta {
+    pub rigid_bodies: Vec<PmxRigidBodyCpu>,
+    pub joints: Vec<PmxJointCpu>,
+}
+
+impl PmxPhysicsMeta {
+    pub fn is_empty(&self) -> bool {
+        self.rigid_bodies.is_empty() && self.joints.is_empty()
     }
 }
 
@@ -114,7 +240,7 @@ pub fn compute_bone_position(
     nodes: &[crate::scene::Node],
     poses: &[crate::scene::NodePose],
 ) -> Vec3 {
-    let mut position = Vec3::ZERO;
+    let mut transform = Mat4::IDENTITY;
     let mut current_idx = Some(bone_index);
     let mut visited = vec![false; nodes.len()];
 
@@ -125,15 +251,15 @@ pub fn compute_bone_position(
         visited[idx] = true;
 
         let pose = &poses[idx];
-        let node = &nodes[idx];
 
-        let rotated_local = pose.rotation * node.base_translation;
-        position = rotated_local + position;
+        let local =
+            Mat4::from_scale_rotation_translation(pose.scale, pose.rotation, pose.translation);
+        transform = local * transform;
 
-        current_idx = node.parent;
+        current_idx = nodes[idx].parent;
     }
 
-    position
+    transform.transform_point3(Vec3::ZERO)
 }
 
 fn compute_global_position(
@@ -194,6 +320,7 @@ mod tests {
     #[test]
     fn test_ik_chain_creation() {
         let chain = IKChain {
+            controller_bone_index: 1,
             target_bone_index: 5,
             chain_root_bone_index: 2,
             iterations: 10,
@@ -213,6 +340,7 @@ mod tests {
                 },
             ],
         };
+        assert_eq!(chain.controller_bone_index, 1);
         assert_eq!(chain.target_bone_index, 5);
         assert_eq!(chain.links.len(), 3);
     }
@@ -224,5 +352,43 @@ mod tests {
         let rot = rotation_between(from.normalize(), to.normalize());
         let result = rot * from.normalize();
         assert!((result - to.normalize()).length() < 0.02);
+    }
+
+    #[test]
+    fn test_compute_bone_position_uses_pose_translation_and_parent_rotation() {
+        let nodes = vec![
+            crate::scene::Node {
+                name: Some("root".to_owned()),
+                parent: None,
+                children: vec![1],
+                base_translation: Vec3::ZERO,
+                base_rotation: Quat::IDENTITY,
+                base_scale: Vec3::ONE,
+            },
+            crate::scene::Node {
+                name: Some("child".to_owned()),
+                parent: Some(0),
+                children: Vec::new(),
+                base_translation: Vec3::new(1.0, 0.0, 0.0),
+                base_rotation: Quat::IDENTITY,
+                base_scale: Vec3::ONE,
+            },
+        ];
+
+        let poses = vec![
+            crate::scene::NodePose {
+                translation: Vec3::new(10.0, 0.0, 0.0),
+                rotation: Quat::from_rotation_z(std::f32::consts::FRAC_PI_2),
+                scale: Vec3::ONE,
+            },
+            crate::scene::NodePose {
+                translation: Vec3::new(1.0, 0.0, 0.0),
+                rotation: Quat::IDENTITY,
+                scale: Vec3::ONE,
+            },
+        ];
+
+        let position = compute_bone_position(1, &nodes, &poses);
+        assert!((position - Vec3::new(10.0, 1.0, 0.0)).length() < 1e-5);
     }
 }

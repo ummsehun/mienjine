@@ -1,9 +1,11 @@
+mod confirm_panel;
 mod input;
 mod input_adjust;
-mod confirm_panel;
 mod panels;
 mod state;
 mod steps;
+mod steps_render;
+#[cfg(test)]
 mod tests;
 mod types;
 
@@ -26,12 +28,8 @@ use ratatui::prelude::*;
 use crate::runtime::{
     config::UiLanguage,
     start_ui_helpers::{
-        aspect_preview_ascii, breakpoint_for, clamp_ratatui_area, closest_u32_index,
-        compute_duration_fit_factor, cycle_index, detect_terminal_cell_aspect, duration_label,
-        format_mib, fps_label, inspect_audio_duration, inspect_clip_duration,
-        inspect_motion_duration, target_fps_for_profile, tr, MIN_HEIGHT, MIN_WIDTH,
-        RATATUI_SAFE_MAX_CELLS, RENDER_FIELD_COUNT, START_FPS_OPTIONS, SYNC_OFFSET_LIMIT_MS,
-        SYNC_OFFSET_STEP_MS,
+        clamp_ratatui_area, cycle_index, tr, RATATUI_SAFE_MAX_CELLS, RENDER_FIELD_COUNT,
+        START_FPS_OPTIONS, SYNC_OFFSET_LIMIT_MS, SYNC_OFFSET_STEP_MS,
     },
     terminal::{RatatuiSession, TerminalProfile},
 };

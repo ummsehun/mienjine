@@ -170,7 +170,7 @@ impl GpuRenderer {
         }
     }
 
-    fn focus_lod_bias(config: &RenderConfig) -> f32 {
+    pub(super) fn focus_lod_bias(config: &RenderConfig) -> f32 {
         match config.camera_focus {
             CameraFocusMode::Face => -1.25,
             CameraFocusMode::Upper => -0.65,

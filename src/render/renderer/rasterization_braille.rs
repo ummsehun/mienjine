@@ -1,9 +1,9 @@
 use crate::math::depth_less;
-use crate::scene::{ColorMode, MeshCpu, RenderConfig, SceneCpu};
+use crate::scene::{MeshCpu, RenderConfig, SceneCpu};
 
 use super::braille::BrailleThresholds;
 use super::rasterization::perp_dot;
-use super::{FrameBuffers, ProjectedVertex, RasterPass, RenderStats, ThemePalette};
+use super::{ProjectedVertex, RasterPass, RenderStats, ThemePalette};
 use crate::render::renderer_color::{
     boost_saturation, clarity_saturation_gain, color_scale_from_tonemap, luminance,
     model_color_for_intensity, scale_rgb, srgb_to_linear, to_display_rgb,
@@ -217,11 +217,19 @@ pub(super) fn rasterize_braille_mesh(
                         .material_index
                         .or(v1.material_index)
                         .or(v2.material_index);
+                    let lighting = crate::render::renderer::shading::shade_lighting(
+                        world_normal,
+                        world_pos,
+                        shading,
+                    )
+                    .clamp(0.0, 1.0);
                     let sample = sample_material(
                         scene,
                         material_index,
                         uv0,
                         uv1,
+                        world_normal,
+                        lighting,
                         depth,
                         vertex_color,
                         config,
@@ -239,12 +247,6 @@ pub(super) fn rasterize_braille_mesh(
                         edge2 += edge2_a;
                         continue;
                     }
-                    let lighting = crate::render::renderer::shading::shade_lighting(
-                        world_normal,
-                        world_pos,
-                        shading,
-                    )
-                    .clamp(0.0, 1.0);
                     let view_dir = (shading.camera_pos - world_pos).normalize_or_zero();
                     let edge_factor = (1.0_f32 - world_normal.dot(view_dir).abs()).powf(1.6_f32);
                     let fog = depth.powf(1.7) * shading.fog_strength * contrast.fog_scale;
