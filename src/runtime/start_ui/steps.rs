@@ -2,7 +2,8 @@ use super::*;
 use crate::runtime::start_ui_helpers::fps_label;
 use ratatui::widgets::{Block, Borders, List, ListItem, ListState};
 
-use super::panels::{draw_aspect_calibration, draw_confirm_panel};
+use super::confirm_panel::draw_confirm_panel;
+use super::panels::draw_aspect_calibration;
 
 pub(super) fn draw_step_panel(
     frame: &mut Frame,

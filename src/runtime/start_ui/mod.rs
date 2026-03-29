@@ -1,5 +1,6 @@
 mod input;
 mod input_adjust;
+mod confirm_panel;
 mod panels;
 mod state;
 mod steps;

@@ -1,0 +1,191 @@
+//! Types for runtime configuration: UiLanguage enum and GasciiConfig struct.
+
+use std::path::PathBuf;
+
+use crate::scene::{
+    AnsiQuantization, AudioReactiveMode, BrailleProfile, CameraAlignPreset, CameraControlMode,
+    CameraFocusMode, CameraMode, CellAspectMode, CenterLockMode, CinematicCameraMode,
+    ClarityProfile, ColorMode, ContrastProfile, DetailProfile, GraphicsProtocol, KittyCompression,
+    KittyInternalResPreset, KittyPipelineMode, KittyTransport, PerfProfile, RecoverStrategy,
+    RenderBackend, RenderOutputMode, StageRole, SyncPolicy, SyncSpeedMode, TextureSamplerMode,
+    TextureSamplingMode, TextureVOrigin, ThemeStyle,
+};
+
+use crate::runtime::sync_profile::SyncProfileMode;
+
+/// UI language for menus and prompts.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum UiLanguage {
+    Ko,
+    En,
+}
+
+/// Core runtime configuration for Gascii renderer.
+#[derive(Debug, Clone)]
+pub struct GasciiConfig {
+    // --- UI ---
+    pub ui_language: UiLanguage,
+    pub font_preset_steps: i32,
+    pub font_preset_enabled: bool,
+    // --- Visual: Color & Output ---
+    pub color_mode: Option<ColorMode>,
+    pub ascii_force_color: bool,
+    pub output_mode: RenderOutputMode,
+    pub graphics_protocol: GraphicsProtocol,
+    pub kitty_transport: KittyTransport,
+    pub kitty_compression: KittyCompression,
+    pub kitty_internal_res: KittyInternalResPreset,
+    pub kitty_pipeline_mode: KittyPipelineMode,
+    pub recover_strategy: RecoverStrategy,
+    pub kitty_scale: f32,
+    pub hq_target_fps: u32,
+    // --- Visual: Quality ---
+    pub subject_exposure_only: bool,
+    pub subject_target_height_ratio: f32,
+    pub subject_target_width_ratio: f32,
+    pub quality_auto_distance: bool,
+    pub texture_mip_bias: f32,
+    // --- Visual: Stage ---
+    pub stage_as_sub_only: bool,
+    pub stage_role: StageRole,
+    pub stage_luma_cap: f32,
+    pub recover_color_auto: bool,
+    // --- Visual: Appearance ---
+    pub braille_profile: BrailleProfile,
+    pub theme_style: ThemeStyle,
+    pub audio_reactive: AudioReactiveMode,
+    pub cinematic_camera: CinematicCameraMode,
+    pub reactive_gain: f32,
+    pub perf_profile: PerfProfile,
+    pub detail_profile: DetailProfile,
+    pub clarity_profile: ClarityProfile,
+    pub ansi_quantization: AnsiQuantization,
+    pub backend: RenderBackend,
+    // --- Stage ---
+    pub stage_dir: PathBuf,
+    pub stage_selection: String,
+    pub exposure_bias: f32,
+    pub stage_level: u8,
+    pub stage_reactive: bool,
+    // --- Camera ---
+    pub center_lock: bool,
+    pub center_lock_mode: CenterLockMode,
+    pub wasd_mode: CameraControlMode,
+    pub freefly_speed: f32,
+    pub camera_look_speed: f32,
+    pub camera_dir: PathBuf,
+    pub camera_selection: String,
+    pub camera_mode: CameraMode,
+    pub camera_align_preset: CameraAlignPreset,
+    pub camera_unit_scale: f32,
+    pub camera_vmd_fps: f32,
+    pub camera_vmd_path: Option<PathBuf>,
+    pub camera_focus: CameraFocusMode,
+    // --- Camera: Material ---
+    pub material_color: bool,
+    pub texture_sampling: TextureSamplingMode,
+    pub texture_v_origin: TextureVOrigin,
+    pub texture_sampler: TextureSamplerMode,
+    pub braille_aspect_compensation: f32,
+    pub model_lift: f32,
+    pub edge_accent_strength: f32,
+    pub bg_suppression: f32,
+    // --- Cell / Aspect ---
+    pub cell_aspect_mode: CellAspectMode,
+    pub cell_aspect_trim: f32,
+    pub contrast_profile: ContrastProfile,
+    // --- Sync ---
+    pub sync_offset_ms: i32,
+    pub sync_speed_mode: SyncSpeedMode,
+    pub sync_policy: SyncPolicy,
+    pub sync_hard_snap_ms: u32,
+    pub sync_kp: f32,
+    pub sync_profile_dir: PathBuf,
+    pub sync_profile_mode: SyncProfileMode,
+    // --- Preprocess / Upscale ---
+    pub upscale_factor: u32,
+    pub upscale_sharpen: f32,
+    // --- Geometry ---
+    pub triangle_stride: usize,
+    pub min_triangle_area_px2: f32,
+}
+
+impl Default for GasciiConfig {
+    fn default() -> Self {
+        Self {
+            ui_language: UiLanguage::Ko,
+            font_preset_steps: 0,
+            font_preset_enabled: false,
+            color_mode: None,
+            ascii_force_color: true,
+            output_mode: RenderOutputMode::Text,
+            graphics_protocol: GraphicsProtocol::Auto,
+            kitty_transport: KittyTransport::Shm,
+            kitty_compression: KittyCompression::None,
+            kitty_internal_res: KittyInternalResPreset::R640x360,
+            kitty_pipeline_mode: KittyPipelineMode::RealPixel,
+            recover_strategy: RecoverStrategy::Hard,
+            kitty_scale: 1.0,
+            hq_target_fps: 24,
+            subject_exposure_only: true,
+            subject_target_height_ratio: 0.66,
+            subject_target_width_ratio: 0.42,
+            quality_auto_distance: true,
+            texture_mip_bias: 0.0,
+            stage_as_sub_only: true,
+            stage_role: StageRole::Sub,
+            stage_luma_cap: 0.35,
+            recover_color_auto: true,
+            braille_profile: BrailleProfile::Safe,
+            theme_style: ThemeStyle::Theater,
+            audio_reactive: AudioReactiveMode::On,
+            cinematic_camera: CinematicCameraMode::On,
+            reactive_gain: 0.35,
+            perf_profile: PerfProfile::Balanced,
+            detail_profile: DetailProfile::Balanced,
+            clarity_profile: ClarityProfile::Sharp,
+            ansi_quantization: AnsiQuantization::Q216,
+            backend: RenderBackend::Cpu,
+            stage_dir: PathBuf::from("assets/stage"),
+            stage_selection: "auto".to_owned(),
+            exposure_bias: 0.0,
+            center_lock: true,
+            center_lock_mode: CenterLockMode::Root,
+            wasd_mode: CameraControlMode::FreeFly,
+            freefly_speed: 1.0,
+            camera_look_speed: 1.0,
+            camera_dir: PathBuf::from("assets/camera"),
+            camera_selection: "none".to_owned(),
+            camera_mode: CameraMode::Off,
+            camera_align_preset: CameraAlignPreset::Std,
+            camera_unit_scale: 0.08,
+            camera_vmd_fps: 30.0,
+            camera_vmd_path: None,
+            camera_focus: CameraFocusMode::Auto,
+            material_color: true,
+            texture_sampling: TextureSamplingMode::Nearest,
+            texture_v_origin: TextureVOrigin::Gltf,
+            texture_sampler: TextureSamplerMode::Gltf,
+            braille_aspect_compensation: 1.00,
+            model_lift: 0.12,
+            edge_accent_strength: 0.32,
+            bg_suppression: 0.35,
+            stage_level: 2,
+            stage_reactive: true,
+            cell_aspect_mode: CellAspectMode::Auto,
+            cell_aspect_trim: 1.0,
+            contrast_profile: ContrastProfile::Adaptive,
+            sync_offset_ms: 0,
+            sync_speed_mode: SyncSpeedMode::AutoDurationFit,
+            sync_policy: SyncPolicy::Continuous,
+            sync_hard_snap_ms: 120,
+            sync_kp: 0.15,
+            sync_profile_dir: PathBuf::from("assets/sync"),
+            sync_profile_mode: SyncProfileMode::Auto,
+            upscale_factor: 2,
+            upscale_sharpen: 0.20,
+            triangle_stride: 1,
+            min_triangle_area_px2: 0.0,
+        }
+    }
+}
