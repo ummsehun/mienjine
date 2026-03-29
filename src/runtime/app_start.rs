@@ -29,7 +29,7 @@ use crate::{
     scene::{resolve_cell_aspect, RenderMode},
 };
 
-use crate::runtime::app::app_impl::{
+use crate::runtime::app::{
     apply_runtime_render_tuning, load_runtime_config, resolve_animation_index,
 };
 

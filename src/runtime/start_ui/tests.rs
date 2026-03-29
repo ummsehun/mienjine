@@ -1,5 +1,5 @@
 use super::*;
-use crossterm::event::KeyModifiers;
+use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 use ratatui::{backend::TestBackend, Terminal};
 
 fn key(code: KeyCode) -> StartWizardEvent {

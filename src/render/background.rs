@@ -1,6 +1,7 @@
 use crate::scene::{ColorMode, DetailProfile, RenderConfig, StageRole, ThemeStyle};
 
-use super::renderer::{FrameBuffers, ThemePalette};
+use super::renderer::FrameBuffers;
+use super::renderer::ThemePalette;
 
 #[derive(Debug, Clone, Copy)]
 pub(super) struct StageParams {
