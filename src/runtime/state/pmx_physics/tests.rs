@@ -7,7 +7,7 @@ use crate::engine::pmx_rig::{
 use crate::runtime::state::RuntimePmxSettings;
 use crate::scene::{Node, NodePose, SceneCpu};
 
-use super::{PmxPhysicsState, RigidBodyRuntime, helpers};
+use super::{helpers, PmxPhysicsState, RigidBodyRuntime};
 
 fn single_root_scene(rigid_bodies: Vec<PmxRigidBodyCpu>) -> SceneCpu {
     SceneCpu {

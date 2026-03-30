@@ -5,10 +5,14 @@ use std::path::PathBuf;
 use crate::runtime::config::types::GasciiConfig;
 use crate::runtime::sync_profile::SyncProfileMode;
 use crate::scene::{SyncPolicy, SyncSpeedMode};
+use crate::shared::constants::SYNC_OFFSET_LIMIT_MS;
 
 /// Parse `sync_offset_ms`.
 pub fn parse_sync_offset_ms(value: &str) -> Option<i32> {
-    value.parse::<i32>().ok().map(|v| v.clamp(-5000, 5000))
+    value
+        .parse::<i32>()
+        .ok()
+        .map(|v| v.clamp(-SYNC_OFFSET_LIMIT_MS, SYNC_OFFSET_LIMIT_MS))
 }
 
 /// Parse `sync_speed_mode`.

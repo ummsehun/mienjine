@@ -7,11 +7,14 @@ use crate::engine::{
 use crate::scene::SceneCpu;
 
 use super::{
-    JointRuntime, JointRuntimeKind, PmxPhysicsState, RigidBodyRuntime, RuntimePmxSettings,
-    derive_pmx_profile, helpers::shape_bounding_radius,
+    derive_pmx_profile, helpers::shape_bounding_radius, JointRuntime, JointRuntimeKind,
+    PmxPhysicsState, RigidBodyRuntime, RuntimePmxSettings,
 };
 
-pub(super) fn from_scene(scene: &SceneCpu, settings: RuntimePmxSettings) -> Option<PmxPhysicsState> {
+pub(super) fn from_scene(
+    scene: &SceneCpu,
+    settings: RuntimePmxSettings,
+) -> Option<PmxPhysicsState> {
     let meta = scene.pmx_physics_meta.as_ref()?;
     if meta.is_empty() {
         return None;
@@ -35,7 +38,12 @@ pub(super) fn from_scene(scene: &SceneCpu, settings: RuntimePmxSettings) -> Opti
             );
             let bone_index = (rigid.bone_index >= 0).then_some(rigid.bone_index as usize);
             let (local_translation, local_rotation, target_world) = bone_index
-                .and_then(|bone_index| globals.get(bone_index).copied().map(|global| (bone_index, global)))
+                .and_then(|bone_index| {
+                    globals
+                        .get(bone_index)
+                        .copied()
+                        .map(|global| (bone_index, global))
+                })
                 .map(|(_bone_index, bone_global)| {
                     let (_, bone_rotation, bone_translation) =
                         bone_global.to_scale_rotation_translation();
@@ -49,13 +57,21 @@ pub(super) fn from_scene(scene: &SceneCpu, settings: RuntimePmxSettings) -> Opti
                             normalized_local_rotation,
                             normalized_local_translation,
                         );
-                    (normalized_local_translation, normalized_local_rotation, world)
+                    (
+                        normalized_local_translation,
+                        normalized_local_rotation,
+                        world,
+                    )
                 })
                 .unwrap_or_else(|| {
                     (
                         rigid.position,
                         rigid_rotation,
-                        Mat4::from_scale_rotation_translation(Vec3::ONE, rigid_rotation, rigid.position),
+                        Mat4::from_scale_rotation_translation(
+                            Vec3::ONE,
+                            rigid_rotation,
+                            rigid.position,
+                        ),
                     )
                 });
             let (_, rotation, position) = target_world.to_scale_rotation_translation();

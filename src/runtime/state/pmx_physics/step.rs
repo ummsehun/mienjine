@@ -3,7 +3,7 @@ use glam::{Mat4, Vec3};
 use crate::engine::pmx_rig::PmxRigidCalcMethod;
 use crate::scene::{NodePose, SceneCpu};
 
-use super::{PmxPhysicsState, helpers};
+use super::{helpers, PmxPhysicsState};
 
 pub(super) fn step(
     state: &mut PmxPhysicsState,
@@ -14,7 +14,10 @@ pub(super) fn step(
 ) {
     let solver = state.profile.solver;
     let physics = state.profile.physics;
-    let dt = dt.clamp(0.0, state.settings.unit_step * state.settings.max_substeps.max(1) as f32);
+    let dt = dt.clamp(
+        0.0,
+        state.settings.unit_step * state.settings.max_substeps.max(1) as f32,
+    );
     if dt <= f32::EPSILON || state.bodies.is_empty() {
         return;
     }
@@ -37,21 +40,21 @@ pub(super) fn step(
                 }
                 PmxRigidCalcMethod::Dynamic => {
                     let resist = body.linear_damping.clamp(0.0, 0.995);
-                    let body_response =
-                        (1.0 + physics.average_repulsion)
-                            / (1.0 + physics.average_mass + physics.average_radius.max(0.000_1));
+                    let body_response = (1.0 + physics.average_repulsion)
+                        / (1.0 + physics.average_mass + physics.average_radius.max(0.000_1));
                     let follow = (solver.dynamic_follow_gain * (1.0 - resist) * body_response)
                         .clamp(0.01, 0.35);
-                    let stiffness = (body.repulsion.max(0.0) + physics.average_repulsion) * follow
-                        + follow;
+                    let stiffness =
+                        (body.repulsion.max(0.0) + physics.average_repulsion) * follow + follow;
                     let damping = (body.linear_damping
                         + physics.average_rotation_resist * 0.5
                         + physics.average_move_resist * 0.5)
                         .clamp(0.0, 10.0);
                     let friction_damping =
                         (body.friction + physics.average_friction).clamp(0.0, 2.0) * 0.5;
-                    body.linear_velocity +=
-                        ((target_pos - body.position) * stiffness + state.settings.gravity) * sub_dt;
+                    body.linear_velocity += ((target_pos - body.position) * stiffness
+                        + state.settings.gravity)
+                        * sub_dt;
                     body.linear_velocity *=
                         (1.0 / (1.0 + (damping + friction_damping) * sub_dt)).clamp(0.0, 1.0);
                     let max_speed = (body.radius.max(0.05)
@@ -153,7 +156,8 @@ pub(super) fn step(
                 let max_correction = (body_a.radius + body_b.radius)
                     * (joint_correction_scale + strength * solver.joint_correction_gain)
                     + 0.01;
-                let correction = if correction_len > max_correction && correction_len > f32::EPSILON {
+                let correction = if correction_len > max_correction && correction_len > f32::EPSILON
+                {
                     correction * (max_correction / correction_len)
                 } else {
                     correction
@@ -234,7 +238,10 @@ pub(super) fn step(
             if matches!(body.calc_method, PmxRigidCalcMethod::Static) {
                 continue;
             }
-            if matches!(body.calc_method, PmxRigidCalcMethod::DynamicWithBonePosition) {
+            if matches!(
+                body.calc_method,
+                PmxRigidCalcMethod::DynamicWithBonePosition
+            ) {
                 let (target_pos, target_rot) =
                     helpers::target_body_transform(scene, pre_physics_globals, body);
                 body.position = target_pos;
@@ -261,8 +268,10 @@ pub(super) fn step(
         {
             continue;
         }
-        if matches!(body.calc_method, PmxRigidCalcMethod::DynamicWithBonePosition)
-            && bone_is_in_physics_conflicting_ik_chain(scene, bone_index)
+        if matches!(
+            body.calc_method,
+            PmxRigidCalcMethod::DynamicWithBonePosition
+        ) && bone_is_in_physics_conflicting_ik_chain(scene, bone_index)
         {
             continue;
         }

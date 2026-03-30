@@ -1,21 +1,22 @@
 use glam::{Mat4, Quat, Vec3};
 
 use crate::engine::animation::{compute_global_matrices_in_place, reset_poses_from_nodes};
+use crate::engine::pipeline::PhysicsStepper;
 use crate::engine::pmx_rig::{PmxRigidCalcMethod, PmxRigidShape};
 use crate::scene::{NodePose, SceneCpu};
 
 use super::RuntimePmxSettings;
 
-mod profile;
 mod helpers;
 mod init;
+mod profile;
 mod step;
 
 #[cfg(test)]
 mod tests;
 
-use profile::PmxDerivedProfile;
 pub(crate) use profile::derive_pmx_profile;
+use profile::PmxDerivedProfile;
 
 #[derive(Debug, Clone)]
 pub(crate) struct PmxPhysicsState {
@@ -117,5 +118,17 @@ impl PmxPhysicsState {
         if let Some(state) = init::from_scene(scene, self.settings) {
             *self = state;
         }
+    }
+}
+
+impl PhysicsStepper for PmxPhysicsState {
+    fn step_physics(
+        &mut self,
+        scene: &SceneCpu,
+        poses: &mut [NodePose],
+        pre_physics_globals: &[Mat4],
+        dt: f32,
+    ) {
+        self.step(scene, poses, pre_physics_globals, dt);
     }
 }

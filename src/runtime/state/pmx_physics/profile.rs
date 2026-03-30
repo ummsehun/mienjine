@@ -171,15 +171,15 @@ fn derive_rig_profile(meta: Option<&PmxRigMeta>) -> PmxRigProfile {
     };
 
     let ik_chain_count = meta.ik_chains.len();
-    let (total_iterations, total_limit_angle) = meta
-        .ik_chains
-        .iter()
-        .fold((0.0_f32, 0.0_f32), |(iter_acc, limit_acc), chain| {
-            (
-                iter_acc + chain.iterations as f32,
-                limit_acc + chain.limit_angle,
-            )
-        });
+    let (total_iterations, total_limit_angle) =
+        meta.ik_chains
+            .iter()
+            .fold((0.0_f32, 0.0_f32), |(iter_acc, limit_acc), chain| {
+                (
+                    iter_acc + chain.iterations as f32,
+                    limit_acc + chain.limit_angle,
+                )
+            });
     let chain_count = ik_chain_count.max(1) as f32;
 
     PmxRigProfile {
@@ -270,8 +270,8 @@ fn derive_physics_profile(meta: Option<&PmxPhysicsMeta>) -> PmxPhysicsProfile {
                 spring_move_count += 1.0;
                 spring_rotation_count += 1.0;
                 joint_span_count += 1.0;
-                profile.average_joint_span +=
-                    (move_limit_up - move_limit_down).length() + (rotation_limit_up - rotation_limit_down).length();
+                profile.average_joint_span += (move_limit_up - move_limit_down).length()
+                    + (rotation_limit_up - rotation_limit_down).length();
             }
             PmxJointKind::SixDof {
                 move_limit_down,
@@ -282,8 +282,8 @@ fn derive_physics_profile(meta: Option<&PmxPhysicsMeta>) -> PmxPhysicsProfile {
             } => {
                 profile.six_dof_joint_count += 1;
                 joint_span_count += 1.0;
-                profile.average_joint_span +=
-                    (move_limit_up - move_limit_down).length() + (rotation_limit_up - rotation_limit_down).length();
+                profile.average_joint_span += (move_limit_up - move_limit_down).length()
+                    + (rotation_limit_up - rotation_limit_down).length();
             }
             PmxJointKind::P2P { .. } => {
                 profile.p2p_joint_count += 1;
@@ -296,7 +296,8 @@ fn derive_physics_profile(meta: Option<&PmxPhysicsMeta>) -> PmxPhysicsProfile {
             } => {
                 profile.cone_twist_joint_count += 1;
                 joint_span_count += 1.0;
-                profile.average_joint_span += swing_span1.abs() + swing_span2.abs() + twist_span.abs();
+                profile.average_joint_span +=
+                    swing_span1.abs() + swing_span2.abs() + twist_span.abs();
             }
             PmxJointKind::Slider {
                 lower_linear_limit,
@@ -307,8 +308,7 @@ fn derive_physics_profile(meta: Option<&PmxPhysicsMeta>) -> PmxPhysicsProfile {
             } => {
                 profile.slider_joint_count += 1;
                 joint_span_count += 1.0;
-                profile.average_joint_span +=
-                    (upper_linear_limit - lower_linear_limit).abs()
+                profile.average_joint_span += (upper_linear_limit - lower_linear_limit).abs()
                     + (upper_angle_limit - lower_angle_limit).abs();
             }
             PmxJointKind::Hinge { low, high, .. } => {
@@ -362,27 +362,28 @@ fn derive_solver_profile(rig: &PmxRigProfile, physics: &PmxPhysicsProfile) -> Pm
             + joint_count * 0.75
             + (physics.dynamic_with_bone_body_count as f32 / rigid_count) * 12.0))
         .clamp(0.004, 0.016);
-    solver.max_substeps = (2 + physics.spring_joint_count / 16 + physics.dynamic_with_bone_body_count / 20)
-        .clamp(2, 12);
-    solver.joint_iterations = (2 + physics.spring_joint_count / 20 + rig.ik_chain_count / 4
+    solver.max_substeps =
+        (2 + physics.spring_joint_count / 16 + physics.dynamic_with_bone_body_count / 20)
+            .clamp(2, 12);
+    solver.joint_iterations = (2
+        + physics.spring_joint_count / 20
+        + rig.ik_chain_count / 4
         + (joint_count as usize / 24))
         .clamp(2, 10);
     solver.dynamic_follow_gain = (1.0 / (1.0 + average_drag)).clamp(0.05, 0.30);
     solver.dynamic_with_bone_follow_gain =
-        (1.0 / (1.0 + physics.average_rotation_resist + average_radius * 0.25))
-            .clamp(0.06, 0.40);
+        (1.0 / (1.0 + physics.average_rotation_resist + average_radius * 0.25)).clamp(0.06, 0.40);
     solver.spring_move_gain = (1.0 / (1.0 + average_spring)).clamp(0.05, 0.45);
     solver.spring_rotation_gain =
         (1.0 / (1.0 + average_spring + average_span * 0.25)).clamp(0.05, 0.40);
     solver.joint_correction_gain =
         ((1.0 + average_repulsion) / (1.0 + average_mass + average_radius)).clamp(0.10, 0.60);
-    solver.position_limit_gain = (0.85 + 0.15 / (1.0 + average_span * 0.25))
-        .clamp(0.75, 1.0);
+    solver.position_limit_gain = (0.85 + 0.15 / (1.0 + average_span * 0.25)).clamp(0.75, 1.0);
     solver.rotation_limit_gain =
         (0.70 + (rig.append_bone_count as f32 / bone_count) * 0.10 + ik_density * 0.10)
             .clamp(0.65, 1.0);
-    solver.collision_push_gain = (0.12 + average_repulsion * 0.03 + average_radius * 0.06)
-        .clamp(0.10, 0.40);
+    solver.collision_push_gain =
+        (0.12 + average_repulsion * 0.03 + average_radius * 0.06).clamp(0.10, 0.40);
     solver
 }
 
@@ -405,34 +406,32 @@ mod tests {
                 base_scale: Vec3::ONE,
             }],
             pmx_rig_meta: Some(PmxRigMeta {
-                bones: vec![
-                    crate::engine::pmx_rig::PmxBoneMeta {
-                        grant_transform: Some(crate::engine::pmx_rig::PmxGrantTransform {
-                            parent_index: 0,
-                            weight: 0.5,
-                            is_local: false,
-                            affects_rotation: true,
-                            affects_translation: false,
-                        }),
-                        name: "ik".to_owned(),
-                        name_en: "ik".to_owned(),
-                        position: Vec3::ZERO,
-                        parent_index: -1,
-                        deform_depth: 0,
-                        boneflag: 0x0020 | 0x0100 | 0x0400 | 0x0800 | 0x2000,
-                        offset: Vec3::ZERO,
-                        child: -1,
-                        append_bone_index: 0,
-                        append_weight: 0.5,
-                        fixed_axis: Vec3::X,
-                        local_axis_x: Vec3::X,
-                        local_axis_z: Vec3::Z,
-                        key_value: 0,
-                        ik_target_index: 0,
-                        ik_iter_count: 8,
-                        ik_limit: 0.25,
-                    },
-                ],
+                bones: vec![crate::engine::pmx_rig::PmxBoneMeta {
+                    grant_transform: Some(crate::engine::pmx_rig::PmxGrantTransform {
+                        parent_index: 0,
+                        weight: 0.5,
+                        is_local: false,
+                        affects_rotation: true,
+                        affects_translation: false,
+                    }),
+                    name: "ik".to_owned(),
+                    name_en: "ik".to_owned(),
+                    position: Vec3::ZERO,
+                    parent_index: -1,
+                    deform_depth: 0,
+                    boneflag: 0x0020 | 0x0100 | 0x0400 | 0x0800 | 0x2000,
+                    offset: Vec3::ZERO,
+                    child: -1,
+                    append_bone_index: 0,
+                    append_weight: 0.5,
+                    fixed_axis: Vec3::X,
+                    local_axis_x: Vec3::X,
+                    local_axis_z: Vec3::Z,
+                    key_value: 0,
+                    ik_target_index: 0,
+                    ik_iter_count: 8,
+                    ik_limit: 0.25,
+                }],
                 ik_chains: vec![crate::engine::pmx_rig::IKChain {
                     controller_bone_index: 0,
                     target_bone_index: 0,

@@ -5,13 +5,18 @@ use crate::{
     scene::{CenterLockMode, ContrastProfile, PerfProfile, RenderConfig, RenderMode},
 };
 
-use super::{
-    LOW_VIS_EXPOSURE_RECOVER_FRAMES, LOW_VIS_EXPOSURE_RECOVER_THRESHOLD,
-    LOW_VIS_EXPOSURE_THRESHOLD, LOW_VIS_EXPOSURE_TRIGGER_FRAMES, MIN_VISIBLE_HEIGHT_RATIO,
-    MIN_VISIBLE_HEIGHT_RECOVER_FRAMES, MIN_VISIBLE_HEIGHT_RECOVER_RATIO,
-    MIN_VISIBLE_HEIGHT_TRIGGER_FRAMES, RuntimeContrastPreset, VISIBILITY_LOW_FRAMES_TO_RECOVER,
-    VISIBILITY_LOW_THRESHOLD,
-};
+use super::RuntimeContrastPreset;
+
+pub(crate) const VISIBILITY_LOW_THRESHOLD: f32 = 0.002;
+pub(crate) const VISIBILITY_LOW_FRAMES_TO_RECOVER: u32 = 12;
+pub(crate) const LOW_VIS_EXPOSURE_THRESHOLD: f32 = 0.008;
+pub(crate) const LOW_VIS_EXPOSURE_TRIGGER_FRAMES: u32 = 6;
+pub(crate) const LOW_VIS_EXPOSURE_RECOVER_THRESHOLD: f32 = 0.020;
+pub(crate) const LOW_VIS_EXPOSURE_RECOVER_FRAMES: u32 = 24;
+pub(crate) const MIN_VISIBLE_HEIGHT_RATIO: f32 = 0.10;
+pub(crate) const MIN_VISIBLE_HEIGHT_TRIGGER_FRAMES: u32 = 10;
+pub(crate) const MIN_VISIBLE_HEIGHT_RECOVER_RATIO: f32 = 0.16;
+pub(crate) const MIN_VISIBLE_HEIGHT_RECOVER_FRAMES: u32 = 30;
 
 #[derive(Debug, Clone, Copy)]
 pub(crate) struct RuntimeAdaptiveQuality {
