@@ -1,10 +1,10 @@
 use super::*;
 
 use super::state::StartWizardState;
-use super::theme::{StartUiTheme, start_ui_theme};
+use super::theme::{start_ui_theme, StartUiTheme};
 use super::types::{RenderDetailMode, StageStatus, StartWizardStep, UiBreakpoint};
 use crate::runtime::start_ui_helpers::{
-    MIN_HEIGHT, MIN_WIDTH, aspect_preview_ascii, duration_label, fps_label,
+    aspect_preview_ascii, duration_label, fps_label, MIN_HEIGHT, MIN_WIDTH,
 };
 use ratatui::widgets::{Block, Borders, Paragraph, Wrap};
 
@@ -136,8 +136,8 @@ pub(super) fn draw_action_bar(
     let step_hint = match state.step {
         StartWizardStep::Branch => tr(
             ui_language,
-            "브랜치 선택: 좌/우, Enter 진행",
-            "Choose branch: left/right, Enter next",
+            "브랜치 선택: 좌/우, 프리셋: 위/아래, Enter 진행",
+            "Branch: left/right, Preset: up/down, Enter next",
         ),
         StartWizardStep::Model => tr(
             ui_language,
@@ -200,6 +200,15 @@ pub(super) fn draw_action_bar(
         Span::raw(" "),
         mode_badge,
     ])];
+    if let Some(status) = state.status_message.as_ref() {
+        lines.push(Line::from(vec![
+            Span::styled(
+                format!("{}: ", tr(ui_language, "상태", "Status")),
+                theme.text_secondary,
+            ),
+            Span::styled(status.clone(), theme.text_primary),
+        ]));
+    }
     if !matches!(breakpoint, UiBreakpoint::Compact) {
         lines.push(Line::from(vec![
             Span::styled("Enter", Style::default().fg(theme.accent)),
@@ -213,6 +222,12 @@ pub(super) fn draw_action_bar(
             Span::raw("  "),
             Span::styled("q", Style::default().fg(theme.accent)),
             Span::styled(tr(ui_language, " 취소", " cancel"), theme.text_secondary),
+            Span::raw("  "),
+            Span::styled("Ctrl+S", Style::default().fg(theme.accent)),
+            Span::styled(
+                tr(ui_language, " preset 저장", " save preset"),
+                theme.text_secondary,
+            ),
         ]));
     }
 

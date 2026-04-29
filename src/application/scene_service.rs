@@ -1,0 +1,17 @@
+use crate::domain::engine::{model::Scene, repository::SceneRepository};
+use crate::domain::shared::ids::SceneId;
+use crate::application::error::ApplicationError;
+
+pub struct SceneService<R: SceneRepository> {
+    repository: R,
+}
+
+impl<R: SceneRepository> SceneService<R> {
+    pub fn new(repository: R) -> Self {
+        Self { repository }
+    }
+
+    pub fn load_scene(&self, id: SceneId) -> Result<Scene, ApplicationError> {
+        self.repository.load(id).map_err(ApplicationError::from)
+    }
+}

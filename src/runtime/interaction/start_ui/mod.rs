@@ -21,12 +21,13 @@ use crossterm::{
     event::{self, Event},
     queue,
     style::Print,
-    terminal::{Clear, ClearType},
+    terminal::{Clear as CrosstermClear, ClearType},
 };
 use ratatui::prelude::*;
+use ratatui::widgets::{Block, Borders, Clear as WidgetClear, Paragraph};
 
 use crate::runtime::{
-    config::UiLanguage,
+    config::{UiLanguage, preset::PresetStore},
     start_ui_helpers::{
         QUICK_RENDER_FIELD_COUNT, RATATUI_SAFE_MAX_CELLS, RENDER_FIELD_COUNT, START_FPS_OPTIONS,
         SYNC_OFFSET_LIMIT_MS, SYNC_OFFSET_STEP_MS, clamp_ratatui_area, cycle_index, tr,
@@ -34,7 +35,7 @@ use crate::runtime::{
     terminal::{RatatuiSession, TerminalProfile},
 };
 
-use state::{StartEntry, StartWizardAction, StartWizardState};
+use state::{PresetPromptState, StartEntry, StartWizardAction, StartWizardState};
 pub use types::{
     ModelBranch, RenderDetailMode, StageChoice, StageStatus, StageTransform, StartSelection,
     StartWizardDefaults, StartWizardEvent, StartWizardStep, UiBreakpoint,
@@ -95,6 +96,13 @@ pub fn run_start_wizard(
         .map(|path| StartEntry::from_path(path))
         .collect::<Vec<_>>();
     let stage_entries = stage_entries.to_vec();
+    let preset_store = match PresetStore::load_default() {
+        Ok(store) => Some(store),
+        Err(error) => {
+            eprintln!("warning: preset store unavailable: {error}");
+            None
+        }
+    };
 
     let mut terminal = RatatuiSession::enter_with_profile(TerminalProfile::detect())?;
     let (width, height) = terminal.size()?;
@@ -105,10 +113,12 @@ pub fn run_start_wizard(
         music_entries,
         stage_entries,
         camera_entries,
+        preset_store,
         defaults,
         width,
         height,
     );
+    state.initialize_presets();
 
     loop {
         state.refresh_runtime_metrics(anim_selector);
@@ -185,7 +195,7 @@ fn draw_unsafe_size_fallback(width: u16, height: u16, lang: UiLanguage) -> Resul
         ),
         tr(lang, "q: 취소", "q: cancel").to_owned(),
     ];
-    queue!(stdout, MoveTo(0, 0), Clear(ClearType::All))?;
+    queue!(stdout, MoveTo(0, 0), CrosstermClear(ClearType::All))?;
     for (idx, line) in lines.iter().enumerate() {
         if idx > 0 {
             queue!(stdout, Print("\n"))?;
@@ -281,4 +291,97 @@ fn draw_start_wizard(
     }
 
     draw_action_bar(frame, main[3], state, ui_language, breakpoint);
+
+    if let Some(status) = state.status_message.as_ref() {
+        let area = Rect {
+            x: area.x,
+            y: area.y.saturating_add(area.height.saturating_sub(1)),
+            width: area.width,
+            height: 1,
+        };
+        let line = Line::from(vec![
+            Span::styled("● ", Style::default().fg(Color::Cyan)),
+            Span::raw(status.as_str()),
+        ]);
+        frame.render_widget(Paragraph::new(line), area);
+    }
+
+    match state.preset_prompt {
+        PresetPromptState::Inactive => {}
+        PresetPromptState::EnterName { ref buffer } => {
+            let width = area.width.min(76);
+            let height = 5;
+            let x = area.x.saturating_add((area.width.saturating_sub(width)) / 2);
+            let y = area
+                .y
+                .saturating_add((area.height.saturating_sub(height)) / 2);
+            let dialog = Rect {
+                x,
+                y,
+                width,
+                height,
+            };
+            frame.render_widget(WidgetClear, dialog);
+            let prompt = Paragraph::new(vec![
+                Line::raw(tr(
+                    ui_language,
+                    "프리셋 이름을 입력하세요 (Enter 저장 / Esc 취소)",
+                    "Enter preset name (Enter save / Esc cancel)",
+                )),
+                Line::raw(""),
+                Line::from(vec![
+                    Span::styled(
+                        format!("{}: ", tr(ui_language, "이름", "Name")),
+                        Style::default().fg(Color::Gray),
+                    ),
+                    Span::styled(buffer.clone(), Style::default().fg(Color::White)),
+                ]),
+            ])
+            .block(
+                Block::default()
+                    .title(tr(ui_language, "Preset Save", "Preset Save"))
+                    .borders(Borders::ALL)
+                    .border_style(Style::default().fg(Color::Cyan)),
+            );
+            frame.render_widget(prompt, dialog);
+        }
+        PresetPromptState::ConfirmOverwrite { ref name } => {
+            let width = area.width.min(76);
+            let height = 5;
+            let x = area.x.saturating_add((area.width.saturating_sub(width)) / 2);
+            let y = area
+                .y
+                .saturating_add((area.height.saturating_sub(height)) / 2);
+            let dialog = Rect {
+                x,
+                y,
+                width,
+                height,
+            };
+            frame.render_widget(WidgetClear, dialog);
+            let prompt = Paragraph::new(vec![
+                Line::raw(format!(
+                    "{} '{name}'",
+                    tr(
+                        ui_language,
+                        "동일 이름 preset이 이미 존재합니다:",
+                        "Preset already exists:"
+                    )
+                )),
+                Line::raw(""),
+                Line::raw(tr(
+                    ui_language,
+                    "Enter=덮어쓰기 / Esc=취소",
+                    "Enter=overwrite / Esc=cancel",
+                )),
+            ])
+            .block(
+                Block::default()
+                    .title(tr(ui_language, "Overwrite Confirm", "Overwrite Confirm"))
+                    .borders(Borders::ALL)
+                    .border_style(Style::default().fg(Color::Yellow)),
+            );
+            frame.render_widget(prompt, dialog);
+        }
+    }
 }

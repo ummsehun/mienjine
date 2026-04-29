@@ -1,7 +1,7 @@
 use super::*;
-use crate::runtime::start_ui_helpers::{QUICK_RENDER_FIELD_COUNT, breakpoint_for};
+use crate::runtime::start_ui_helpers::{breakpoint_for, QUICK_RENDER_FIELD_COUNT};
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
-use ratatui::{Terminal, backend::TestBackend};
+use ratatui::{backend::TestBackend, Terminal};
 
 fn key(code: KeyCode) -> StartWizardEvent {
     StartWizardEvent::Key(KeyEvent::new(code, KeyModifiers::NONE))
@@ -27,6 +27,7 @@ fn test_state() -> StartWizardState {
         music_entries,
         stage_entries,
         camera_entries,
+        None,
         StartWizardDefaults::default(),
         120,
         35,

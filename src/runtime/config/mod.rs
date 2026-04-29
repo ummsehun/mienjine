@@ -5,6 +5,7 @@ use std::path::Path;
 
 pub mod camera;
 pub mod general;
+pub mod preset;
 pub mod sync;
 pub mod types;
 pub mod visual;

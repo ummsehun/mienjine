@@ -13,6 +13,9 @@ use crate::scene::{
     TextureSamplingMode, TextureVOrigin, ThemeStyle,
 };
 
+pub use crate::runtime::config::preset::{
+    validate_preset_name, PresetStore, SavePresetResult, WizardPreset,
+};
 use crate::runtime::sync_profile::SyncProfileMode;
 
 /// UI language for menus and prompts.
