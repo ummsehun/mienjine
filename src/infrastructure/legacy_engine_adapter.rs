@@ -1,8 +1,6 @@
 use crate::domain::engine::{error::EngineError, model::Scene, repository::SceneRepository};
 use crate::domain::shared::ids::SceneId;
 
-/// Legacy engine adapter
-/// Wraps existing src/engine/ functions to implement the new SceneRepository trait
 pub struct LegacyEngineAdapter;
 
 impl LegacyEngineAdapter {
@@ -13,10 +11,14 @@ impl LegacyEngineAdapter {
 
 impl SceneRepository for LegacyEngineAdapter {
     fn load(&self, _id: SceneId) -> Result<Scene, EngineError> {
-        todo!("LegacyEngineAdapter::load - bridge to existing engine/scene")
+        Err(EngineError::LegacyFailure {
+            message: "SceneRepository::load via LegacyEngineAdapter is not yet implemented. SceneCpu -> Scene mapping pending (Phase 1.5-D).".to_string(),
+        })
     }
 
     fn save(&self, _scene: &Scene) -> Result<(), EngineError> {
-        todo!("LegacyEngineAdapter::save")
+        Err(EngineError::LegacyFailure {
+            message: "save not implemented".to_string(),
+        })
     }
 }

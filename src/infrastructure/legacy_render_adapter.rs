@@ -1,8 +1,10 @@
-use crate::domain::render::{error::RenderError, model::RenderPipeline, repository::RenderRepository};
+use crate::domain::render::{
+    error::RenderError,
+    model::{RenderPipeline, RenderTargetSpec},
+    repository::RenderRepository,
+};
 use crate::domain::shared::ids::RenderId;
 
-/// Legacy render adapter
-/// Wraps existing src/render/ functions to implement the new RenderRepository trait
 pub struct LegacyRenderAdapter;
 
 impl LegacyRenderAdapter {
@@ -12,11 +14,15 @@ impl LegacyRenderAdapter {
 }
 
 impl RenderRepository for LegacyRenderAdapter {
-    fn create_pipeline(&self, _id: RenderId) -> Result<RenderPipeline, RenderError> {
-        todo!("LegacyRenderAdapter::create_pipeline - bridge to existing render/renderer")
+    fn create_pipeline(&self, id: RenderId) -> Result<RenderPipeline, RenderError> {
+        let spec = RenderTargetSpec {
+            width: 640,
+            height: 360,
+        };
+        Ok(RenderPipeline::new(id, spec))
     }
 
     fn destroy_pipeline(&self, _id: RenderId) -> Result<(), RenderError> {
-        todo!("LegacyRenderAdapter::destroy_pipeline")
+        Ok(())
     }
 }

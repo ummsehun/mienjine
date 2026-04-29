@@ -1,17 +1,28 @@
-use crate::domain::asset::{model::Asset, repository::AssetRepository};
-use crate::domain::shared::ids::AssetId;
+use crate::domain::asset::{
+    model::Asset,
+    repository::AssetPort,
+};
 use crate::application::error::ApplicationError;
+use std::path::Path;
 
-pub struct AssetService<R: AssetRepository> {
-    repository: R,
+pub struct AssetService<P: AssetPort> {
+    port: P,
 }
 
-impl<R: AssetRepository> AssetService<R> {
-    pub fn new(repository: R) -> Self {
-        Self { repository }
+impl<P: AssetPort> AssetService<P> {
+    pub fn new(port: P) -> Self {
+        Self { port }
     }
 
-    pub fn load_asset(&self, id: AssetId) -> Result<Asset, ApplicationError> {
-        self.repository.load(id).map_err(ApplicationError::from)
+    pub fn load_gltf(&self, path: &Path) -> Result<Asset, ApplicationError> {
+        self.port.load_gltf(path).map_err(ApplicationError::from)
+    }
+
+    pub fn load_pmx(&self, path: &Path) -> Result<Asset, ApplicationError> {
+        self.port.load_pmx(path).map_err(ApplicationError::from)
+    }
+
+    pub fn load_obj(&self, path: &Path) -> Result<Asset, ApplicationError> {
+        self.port.load_obj(path).map_err(ApplicationError::from)
     }
 }

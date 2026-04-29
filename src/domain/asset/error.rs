@@ -17,4 +17,16 @@ pub enum AssetError {
 
     #[error("io error: {0}")]
     Io(#[from] std::io::Error),
+
+    #[error("legacy adapter failure: {message}")]
+    LegacyFailure { message: String },
+}
+
+impl From<anyhow::Error> for AssetError {
+    fn from(err: anyhow::Error) -> Self {
+        if let Some(io_err) = err.downcast_ref::<std::io::Error>() {
+            return AssetError::Io(std::io::Error::new(io_err.kind(), io_err.to_string()));
+        }
+        AssetError::LegacyFailure { message: err.to_string() }
+    }
 }

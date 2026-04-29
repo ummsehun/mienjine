@@ -19,4 +19,13 @@ pub enum RenderError {
 
     #[error("renderer not available")]
     RendererNotAvailable,
+
+    #[error("legacy render failure: {message}")]
+    LegacyFailure { message: String },
+}
+
+impl From<anyhow::Error> for RenderError {
+    fn from(err: anyhow::Error) -> Self {
+        RenderError::LegacyFailure { message: err.to_string() }
+    }
 }
