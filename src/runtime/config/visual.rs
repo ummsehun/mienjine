@@ -6,7 +6,7 @@ use crate::scene::{
     AnsiQuantization, AudioReactiveMode, BrailleProfile, CinematicCameraMode, ClarityProfile,
     ColorMode, DetailProfile, GraphicsProtocol, KittyCompression, KittyInternalResPreset,
     KittyPipelineMode, KittyTransport, PerfProfile, RecoverStrategy, RenderBackend,
-    RenderOutputMode, StageRole, ThemeStyle,
+    RenderOutputMode, StageQuality, StageRole, ThemeStyle,
 };
 
 /// Parse `color_mode`.
@@ -137,6 +137,20 @@ pub fn parse_stage_role(value: &str) -> StageRole {
         StageRole::Off
     } else {
         StageRole::Sub
+    }
+}
+
+/// Parse `stage_quality`.
+pub fn parse_stage_quality(value: &str) -> StageQuality {
+    let lower = value.to_ascii_lowercase();
+    if lower.starts_with("min") {
+        StageQuality::Minimal
+    } else if lower.starts_with("low") {
+        StageQuality::Low
+    } else if lower.starts_with("high") {
+        StageQuality::High
+    } else {
+        StageQuality::Medium
     }
 }
 
@@ -349,6 +363,9 @@ pub fn apply_visual(key: &str, value: &str, cfg: &mut GasciiConfig) {
         }
         "stage_role" => {
             cfg.stage_role = parse_stage_role(value);
+        }
+        "stage_quality" => {
+            cfg.stage_quality = parse_stage_quality(value);
         }
         "stage_luma_cap" => {
             if let Some(v) = parse_stage_luma_cap(value) {

@@ -9,8 +9,8 @@ use crate::scene::{
     CameraFocusMode, CameraMode, CellAspectMode, CenterLockMode, CinematicCameraMode,
     ClarityProfile, ColorMode, ContrastProfile, DetailProfile, GraphicsProtocol, KittyCompression,
     KittyInternalResPreset, KittyPipelineMode, KittyTransport, PerfProfile, RecoverStrategy,
-    RenderBackend, RenderOutputMode, StageRole, SyncPolicy, SyncSpeedMode, TextureSamplerMode,
-    TextureSamplingMode, TextureVOrigin, ThemeStyle,
+    RenderBackend, RenderOutputMode, StageQuality, StageRole, SyncPolicy, SyncSpeedMode,
+    TextureSamplerMode, TextureSamplingMode, TextureVOrigin, ThemeStyle,
 };
 
 pub use crate::runtime::config::preset::{
@@ -53,6 +53,7 @@ pub struct GasciiConfig {
     // --- Visual: Stage ---
     pub stage_as_sub_only: bool,
     pub stage_role: StageRole,
+    pub stage_quality: StageQuality,
     pub stage_luma_cap: f32,
     pub recover_color_auto: bool,
     // --- Visual: Appearance ---
@@ -144,6 +145,7 @@ impl Default for GasciiConfig {
             texture_mip_bias: 0.0,
             stage_as_sub_only: true,
             stage_role: StageRole::Sub,
+            stage_quality: StageQuality::Medium,
             stage_luma_cap: 0.35,
             recover_color_auto: true,
             braille_profile: BrailleProfile::Safe,

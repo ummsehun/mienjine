@@ -1,4 +1,5 @@
 use super::*;
+use crate::scene::StageQuality;
 
 impl StartWizardState {
     pub(super) fn adjust_camera_value(&mut self, camera_len: usize, delta: i32) {
@@ -127,6 +128,14 @@ impl StartWizardState {
                 self.stage_level = value as u8;
             }
             16 => {
+                self.stage_quality = match self.stage_quality {
+                    StageQuality::Minimal => StageQuality::Low,
+                    StageQuality::Low => StageQuality::Medium,
+                    StageQuality::Medium => StageQuality::High,
+                    StageQuality::High => StageQuality::Minimal,
+                };
+            }
+            17 => {
                 if matches!(self.mode, RenderMode::Braille) {
                     self.color_mode = match self.color_mode {
                         ColorMode::Mono => ColorMode::Ansi,
@@ -136,65 +145,65 @@ impl StartWizardState {
                     self.color_mode = ColorMode::Ansi;
                 }
             }
-            17 => {
+            18 => {
                 self.braille_profile = match self.braille_profile {
                     BrailleProfile::Safe => BrailleProfile::Normal,
                     BrailleProfile::Normal => BrailleProfile::Dense,
                     BrailleProfile::Dense => BrailleProfile::Safe,
                 };
             }
-            18 => {
+            19 => {
                 self.theme_style = match self.theme_style {
                     ThemeStyle::Theater => ThemeStyle::Neon,
                     ThemeStyle::Neon => ThemeStyle::Holo,
                     ThemeStyle::Holo => ThemeStyle::Theater,
                 };
             }
-            19 => {
+            20 => {
                 self.audio_reactive = match self.audio_reactive {
                     AudioReactiveMode::Off => AudioReactiveMode::On,
                     AudioReactiveMode::On => AudioReactiveMode::High,
                     AudioReactiveMode::High => AudioReactiveMode::Off,
                 };
             }
-            20 => {
+            21 => {
                 self.cinematic_camera = match self.cinematic_camera {
                     CinematicCameraMode::Off => CinematicCameraMode::On,
                     CinematicCameraMode::On => CinematicCameraMode::Aggressive,
                     CinematicCameraMode::Aggressive => CinematicCameraMode::Off,
                 };
             }
-            21 => {
+            22 => {
                 let step = 0.05 * (delta as f32);
                 self.reactive_gain = (self.reactive_gain + step).clamp(0.0, 1.0);
             }
-            22 => cycle_index(&mut self.fps_index, START_FPS_OPTIONS.len(), delta),
-            23 => {
+            23 => cycle_index(&mut self.fps_index, START_FPS_OPTIONS.len(), delta),
+            24 => {
                 self.contrast_profile = match self.contrast_profile {
                     ContrastProfile::Adaptive => ContrastProfile::Fixed,
                     ContrastProfile::Fixed => ContrastProfile::Adaptive,
                 }
             }
-            24 => {
+            25 => {
                 let next = self
                     .sync_offset_ms
                     .saturating_add(delta.saturating_mul(SYNC_OFFSET_STEP_MS));
                 self.sync_offset_ms = next.clamp(-SYNC_OFFSET_LIMIT_MS, SYNC_OFFSET_LIMIT_MS);
             }
-            25 => {
+            26 => {
                 self.sync_speed_mode = match self.sync_speed_mode {
                     SyncSpeedMode::AutoDurationFit => SyncSpeedMode::Realtime1x,
                     SyncSpeedMode::Realtime1x => SyncSpeedMode::AutoDurationFit,
                 }
             }
-            26 => {
+            27 => {
                 self.output_mode = match self.output_mode {
                     RenderOutputMode::Text => RenderOutputMode::Hybrid,
                     RenderOutputMode::Hybrid => RenderOutputMode::KittyHq,
                     RenderOutputMode::KittyHq => RenderOutputMode::Text,
                 };
             }
-            27 => {
+            28 => {
                 self.graphics_protocol = match self.graphics_protocol {
                     GraphicsProtocol::Auto => GraphicsProtocol::Kitty,
                     GraphicsProtocol::Kitty => GraphicsProtocol::Iterm2,
@@ -202,27 +211,27 @@ impl StartWizardState {
                     GraphicsProtocol::None => GraphicsProtocol::Auto,
                 };
             }
-            28 => {
+            29 => {
                 self.sync_policy = match self.sync_policy {
                     SyncPolicy::Continuous => SyncPolicy::Fixed,
                     SyncPolicy::Fixed => SyncPolicy::Manual,
                     SyncPolicy::Manual => SyncPolicy::Continuous,
                 };
             }
-            29 => {
+            30 => {
                 let next = (self.sync_hard_snap_ms as i32 + delta * 10).clamp(10, 2_000);
                 self.sync_hard_snap_ms = next as u32;
             }
-            30 => {
+            31 => {
                 self.sync_kp = (self.sync_kp + 0.01 * delta as f32).clamp(0.01, 1.0);
             }
-            31 => {
+            32 => {
                 self.cell_aspect_mode = match self.cell_aspect_mode {
                     CellAspectMode::Auto => CellAspectMode::Manual,
                     CellAspectMode::Manual => CellAspectMode::Auto,
                 }
             }
-            32 => {
+            33 => {
                 self.font_preset_enabled = !self.font_preset_enabled;
             }
             _ => {}

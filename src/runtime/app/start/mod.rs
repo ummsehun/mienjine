@@ -18,7 +18,7 @@ use crate::{
         pmx_log,
         render_loop::run_scene_interactive,
     },
-    scene::RenderMode,
+    scene::{RenderMode, StageQuality},
 };
 
 mod font;
@@ -91,6 +91,7 @@ pub(super) fn start(args: StartArgs) -> Result<()> {
         braille_aspect_compensation: visual.braille_aspect_compensation,
         stage_level: visual.stage_level,
         stage_reactive: visual.stage_reactive,
+        stage_quality: StageQuality::Medium,
         color_mode: default_color_mode,
         braille_profile: visual.braille_profile,
         theme_style: visual.theme_style,

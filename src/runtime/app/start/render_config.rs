@@ -50,6 +50,7 @@ pub(super) fn build_render_config(
             texture_mip_bias: visual.texture_mip_bias,
             stage_as_sub_only: visual.stage_as_sub_only,
             stage_role: visual.stage_role,
+            stage_quality: selection.stage_quality,
             stage_luma_cap: visual.stage_luma_cap,
             cell_aspect_mode: selection.cell_aspect_mode,
             cell_aspect_trim: selection.cell_aspect_trim,

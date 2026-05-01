@@ -11,7 +11,7 @@ use crate::render::common::color::{
 use crate::render::common::exposure::{push_histogram, tone_map_intensity};
 use crate::render::common::glyph::{glyph_for_intensity, glyph_intensity};
 use crate::render::common::material::{resolve_material_props, sample_material};
-use crate::scene::{ColorMode, MeshCpu, RenderConfig, SceneCpu};
+use crate::scene::{ColorMode, MeshCpu, RenderConfig, SceneCpu, StageQuality};
 
 pub(super) use super::rasterization_braille::rasterize_braille_mesh;
 
@@ -51,12 +51,24 @@ pub(super) fn rasterize_mesh(
             base_stride.min(2)
         }
     } else {
-        base_stride.saturating_mul(6).clamp(2, 32)
+        let stage_multiplier = match config.stage_quality {
+            StageQuality::High => 6,
+            StageQuality::Medium => 10,
+            StageQuality::Low => 14,
+            StageQuality::Minimal => 20,
+        };
+        base_stride.saturating_mul(stage_multiplier).clamp(2, 32)
     };
     let min_triangle_area_px2 = if is_subject_layer {
         (config.min_triangle_area_px2 * 0.35).max(0.0)
     } else {
-        (config.min_triangle_area_px2.max(0.2) * 2.2).max(0.2)
+        let area_multiplier = match config.stage_quality {
+            StageQuality::High => 2.2,
+            StageQuality::Medium => 5.0,
+            StageQuality::Low => 8.0,
+            StageQuality::Minimal => 14.0,
+        };
+        (config.min_triangle_area_px2.max(0.2) * area_multiplier).max(0.2)
     };
     if width <= 0 || height <= 0 {
         return;

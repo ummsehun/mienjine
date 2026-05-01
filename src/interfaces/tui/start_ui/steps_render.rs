@@ -1,6 +1,7 @@
 use super::theme::start_ui_theme;
 use super::*;
 use crate::interfaces::tui::helpers::fps_label;
+use crate::scene::StageQuality;
 use ratatui::widgets::{Block, Borders, List, ListItem, ListState};
 
 pub(super) fn draw_render_options(
@@ -145,6 +146,12 @@ pub(super) fn draw_render_options(
         TextureSamplingMode::Nearest => tr(ui_language, "최근접", "Nearest"),
         TextureSamplingMode::Bilinear => tr(ui_language, "쌍선형", "Bilinear"),
     };
+    let stage_quality = match state.stage_quality {
+        StageQuality::Minimal => tr(ui_language, "최소", "Minimal"),
+        StageQuality::Low => tr(ui_language, "낮음", "Low"),
+        StageQuality::Medium => tr(ui_language, "중간", "Medium"),
+        StageQuality::High => tr(ui_language, "높음", "High"),
+    };
 
     let rows = vec![
         format!("{}: {}", tr(ui_language, "모드", "Mode"), mode),
@@ -218,6 +225,11 @@ pub(super) fn draw_render_options(
             "{}: {}",
             tr(ui_language, "스테이지 레벨", "Stage Level"),
             state.stage_level
+        ),
+        format!(
+            "{}: {}",
+            tr(ui_language, "스테이지 품질", "Stage Quality"),
+            stage_quality
         ),
         format!(
             "{}: {}",

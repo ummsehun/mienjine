@@ -6,8 +6,8 @@ use crate::scene::{
     AnsiQuantization, AudioReactiveMode, BrailleProfile, CameraAlignPreset, CameraControlMode,
     CameraFocusMode, CameraMode, CellAspectMode, CenterLockMode, CinematicCameraMode,
     ClarityProfile, ColorMode, ContrastProfile, DetailProfile, GraphicsProtocol, PerfProfile,
-    RenderBackend, RenderMode, RenderOutputMode, SyncPolicy, SyncSpeedMode, TextureSamplingMode,
-    ThemeStyle,
+    RenderBackend, RenderMode, RenderOutputMode, StageQuality, SyncPolicy, SyncSpeedMode,
+    TextureSamplingMode, ThemeStyle,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -120,6 +120,7 @@ pub struct StartWizardDefaults {
     pub braille_aspect_compensation: f32,
     pub stage_level: u8,
     pub stage_reactive: bool,
+    pub stage_quality: StageQuality,
     pub color_mode: ColorMode,
     pub braille_profile: BrailleProfile,
     pub theme_style: ThemeStyle,
@@ -166,6 +167,7 @@ impl Default for StartWizardDefaults {
             braille_aspect_compensation: 1.00,
             stage_level: 2,
             stage_reactive: true,
+            stage_quality: StageQuality::Medium,
             color_mode: ColorMode::Mono,
             braille_profile: BrailleProfile::Safe,
             theme_style: ThemeStyle::Theater,
@@ -218,6 +220,7 @@ pub struct StartSelection {
     pub braille_aspect_compensation: f32,
     pub stage_level: u8,
     pub stage_reactive: bool,
+    pub stage_quality: StageQuality,
     pub color_mode: ColorMode,
     pub braille_profile: BrailleProfile,
     pub theme_style: ThemeStyle,

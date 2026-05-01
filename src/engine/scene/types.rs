@@ -62,6 +62,14 @@ pub enum StageRole {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum StageQuality {
+    Minimal,
+    Low,
+    Medium,
+    High,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SyncPolicy {
     Continuous,
     Fixed,
@@ -274,6 +282,7 @@ pub struct RenderConfig {
     pub center_lock: bool,
     pub center_lock_mode: CenterLockMode,
     pub stage_level: u8,
+    pub stage_quality: StageQuality,
     pub stage_reactive: bool,
     pub material_color: bool,
     pub texture_sampling: TextureSamplingMode,
@@ -349,6 +358,7 @@ impl Default for RenderConfig {
             center_lock: true,
             center_lock_mode: CenterLockMode::Root,
             stage_level: 2,
+            stage_quality: StageQuality::Medium,
             stage_reactive: true,
             material_color: true,
             texture_sampling: TextureSamplingMode::Nearest,

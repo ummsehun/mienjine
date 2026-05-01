@@ -73,6 +73,7 @@ pub(crate) fn resolve_visual_options_for_bench(
             .stage_role
             .map(Into::into)
             .unwrap_or(runtime_cfg.stage_role),
+        stage_quality: runtime_cfg.stage_quality,
         stage_luma_cap: args
             .stage_luma_cap
             .unwrap_or(runtime_cfg.stage_luma_cap)

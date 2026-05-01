@@ -6,8 +6,8 @@ use crate::scene::{
     AnsiQuantization, AudioReactiveMode, BrailleProfile, CameraAlignPreset, CameraControlMode,
     CameraFocusMode, CameraMode, CellAspectMode, CenterLockMode, CinematicCameraMode,
     ClarityProfile, ColorMode, ContrastProfile, DetailProfile, GraphicsProtocol, PerfProfile,
-    RenderBackend, RenderConfig, RenderMode, RenderOutputMode, SyncPolicy, SyncSpeedMode,
-    TextureSamplingMode, ThemeStyle, resolve_cell_aspect,
+    RenderBackend, RenderConfig, RenderMode, RenderOutputMode, StageQuality, SyncPolicy,
+    SyncSpeedMode, TextureSamplingMode, ThemeStyle, resolve_cell_aspect,
 };
 
 use crate::interfaces::tui::helpers::{
@@ -66,6 +66,7 @@ pub(crate) struct StartWizardState {
     pub(crate) braille_aspect_compensation: f32,
     pub(crate) stage_level: u8,
     pub(crate) stage_reactive: bool,
+    pub(crate) stage_quality: StageQuality,
     pub(crate) color_mode: ColorMode,
     pub(crate) braille_profile: BrailleProfile,
     pub(crate) theme_style: ThemeStyle,
@@ -164,6 +165,7 @@ impl StartWizardState {
             braille_aspect_compensation: defaults.braille_aspect_compensation,
             stage_level: defaults.stage_level.min(4),
             stage_reactive: defaults.stage_reactive,
+            stage_quality: defaults.stage_quality,
             color_mode: defaults.color_mode,
             braille_profile: defaults.braille_profile,
             theme_style: defaults.theme_style,
@@ -260,6 +262,7 @@ impl StartWizardState {
             braille_aspect_compensation: self.braille_aspect_compensation,
             stage_level: self.stage_level,
             stage_reactive: self.stage_reactive,
+            stage_quality: self.stage_quality,
             color_mode: if matches!(self.mode, RenderMode::Ascii) {
                 ColorMode::Ansi
             } else {

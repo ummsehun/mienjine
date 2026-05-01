@@ -17,7 +17,7 @@ use super::start_ui::UiBreakpoint;
 pub(crate) const MIN_WIDTH: u16 = 60;
 pub(crate) const MIN_HEIGHT: u16 = 18;
 pub(crate) const START_FPS_OPTIONS: [u32; 9] = [0, 15, 20, 24, 30, 40, 60, 90, 120];
-pub(crate) const RENDER_FIELD_COUNT: usize = 33;
+pub(crate) const RENDER_FIELD_COUNT: usize = 34;
 pub(crate) const QUICK_RENDER_FIELD_COUNT: usize = 12;
 pub(crate) const RATATUI_SAFE_MAX_CELLS: u32 = (u16::MAX as u32) - 1;
 

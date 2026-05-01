@@ -2,8 +2,8 @@ use crate::scene::{
     AnsiQuantization, AudioReactiveMode, BrailleProfile, CameraAlignPreset, CameraControlMode,
     CameraFocusMode, CameraMode, CellAspectMode, CenterLockMode, CinematicCameraMode,
     ClarityProfile, ColorMode, ContrastProfile, DetailProfile, GraphicsProtocol, PerfProfile,
-    RenderBackend, RenderMode, RenderOutputMode, SyncPolicy, SyncSpeedMode, TextureSamplingMode,
-    ThemeStyle,
+    RenderBackend, RenderMode, RenderOutputMode, StageQuality, SyncPolicy, SyncSpeedMode,
+    TextureSamplingMode, ThemeStyle,
 };
 
 use super::super::types::RenderDetailMode;
@@ -229,6 +229,31 @@ pub(crate) fn parse_render_detail_mode_text(value: &str) -> RenderDetailMode {
         RenderDetailMode::Advanced
     } else {
         RenderDetailMode::Quick
+    }
+}
+
+#[allow(dead_code)]
+pub(crate) fn stage_quality_to_text(value: StageQuality) -> String {
+    match value {
+        StageQuality::Minimal => "minimal",
+        StageQuality::Low => "low",
+        StageQuality::Medium => "medium",
+        StageQuality::High => "high",
+    }
+    .to_owned()
+}
+
+#[allow(dead_code)]
+pub(crate) fn parse_stage_quality_text(value: &str) -> StageQuality {
+    let value = value.to_ascii_lowercase();
+    if value.starts_with("min") {
+        StageQuality::Minimal
+    } else if value.starts_with("low") {
+        StageQuality::Low
+    } else if value.starts_with("high") {
+        StageQuality::High
+    } else {
+        StageQuality::Medium
     }
 }
 

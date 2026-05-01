@@ -79,6 +79,7 @@ fn build_render_config(input: RenderConfigInput, visual: &ResolvedVisualOptions)
         center_lock: visual.center_lock,
         center_lock_mode: visual.center_lock_mode,
         stage_level: visual.stage_level,
+        stage_quality: visual.stage_quality,
         stage_reactive: visual.stage_reactive,
         material_color: visual.material_color,
         texture_sampling: visual.texture_sampling,

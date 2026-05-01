@@ -1,5 +1,5 @@
 use crate::math::depth_less;
-use crate::scene::{MeshCpu, RenderConfig, SceneCpu};
+use crate::scene::{MeshCpu, RenderConfig, SceneCpu, StageQuality};
 
 use super::braille::BrailleThresholds;
 use super::rasterization::perp_dot;
@@ -44,12 +44,24 @@ pub(super) fn rasterize_braille_mesh(
             base_stride.min(2)
         }
     } else {
-        base_stride.saturating_mul(6).clamp(2, 32)
+        let stage_multiplier = match config.stage_quality {
+            StageQuality::High => 6,
+            StageQuality::Medium => 10,
+            StageQuality::Low => 14,
+            StageQuality::Minimal => 20,
+        };
+        base_stride.saturating_mul(stage_multiplier).clamp(2, 32)
     };
     let min_triangle_area_px2 = if is_subject_layer {
         (config.min_triangle_area_px2 * 0.35).max(0.0)
     } else {
-        (config.min_triangle_area_px2.max(0.2) * 2.2).max(0.2)
+        let area_multiplier = match config.stage_quality {
+            StageQuality::High => 2.2,
+            StageQuality::Medium => 5.0,
+            StageQuality::Low => 8.0,
+            StageQuality::Minimal => 14.0,
+        };
+        (config.min_triangle_area_px2.max(0.2) * area_multiplier).max(0.2)
     };
     if width <= 0 || height <= 0 {
         return;

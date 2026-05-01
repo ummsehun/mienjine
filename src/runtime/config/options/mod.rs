@@ -22,8 +22,8 @@ use crate::{
         CameraFocusMode, CameraMode, CellAspectMode, CenterLockMode, CinematicCameraMode,
         ClarityProfile, ColorMode, ContrastProfile, DetailProfile, GraphicsProtocol,
         KittyCompression, KittyInternalResPreset, KittyPipelineMode, KittyTransport, PerfProfile,
-        RecoverStrategy, RenderBackend, RenderMode, RenderOutputMode, StageRole, SyncPolicy,
-        SyncSpeedMode, TextureSamplingMode, ThemeStyle,
+        RecoverStrategy, RenderBackend, RenderMode, RenderOutputMode, StageQuality, StageRole,
+        SyncPolicy, SyncSpeedMode, TextureSamplingMode, ThemeStyle,
     },
     shared::constants::SYNC_OFFSET_LIMIT_MS,
 };
@@ -47,6 +47,7 @@ pub(crate) struct ResolvedVisualOptions {
     pub(crate) texture_mip_bias: f32,
     pub(crate) stage_as_sub_only: bool,
     pub(crate) stage_role: StageRole,
+    pub(crate) stage_quality: StageQuality,
     pub(crate) stage_luma_cap: f32,
     pub(crate) cell_aspect_mode: CellAspectMode,
     pub(crate) cell_aspect_trim: f32,
