@@ -1,12 +1,12 @@
 
 # Ignore vscode AI rules
 .github/instructions/codacy.instructions.md
-assets
-assets-local/
+
 .DS_Store
 
-
+/assets
 # Added by cargo
 
 /target
 /log
+
