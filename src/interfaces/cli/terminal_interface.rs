@@ -189,6 +189,9 @@ impl TerminalSession {
         display_cells: (u16, u16),
         force_reupload: bool,
     ) -> Result<()> {
+        if self.sync_updates && matches!(protocol, GraphicsProtocol::Kitty) {
+            queue!(self.stdout, BeginSynchronizedUpdate)?;
+        }
         write_graphics_frame(
             &mut self.stdout,
             frame,
@@ -201,8 +204,13 @@ impl TerminalSession {
                 scale,
                 display_cells: Some(display_cells),
                 force_reupload,
+                z_index: 1,
             },
         )?;
+        if self.sync_updates && matches!(protocol, GraphicsProtocol::Kitty) {
+            queue!(self.stdout, EndSynchronizedUpdate)?;
+        }
+        self.stdout.flush()?;
         // Force a full repaint if/when we fall back to text mode.
         self.presenter.force_full_repaint = true;
         Ok(())

@@ -1,4 +1,4 @@
-use anyhow::{Result, bail};
+use anyhow::Result;
 
 use crate::{
     cli::StartArgs,
@@ -36,11 +36,14 @@ pub(super) fn start(args: StartArgs) -> Result<()> {
     let model_files = discover_glb_files(&args.dir)?;
     let pmx_files = discover_pmx_files(&args.pmx_dir)?;
     let motion_files = discover_vmd_files(&args.motion_dir);
-    if model_files.is_empty() {
-        bail!(
-            "no .glb/.gltf files found in {}",
-            args.dir.as_path().display()
-        );
+    if model_files.is_empty() && pmx_files.is_empty() {
+        eprintln!("No 3D model files found in:");
+        eprintln!("  Models:  {}", args.dir.as_path().display());
+        eprintln!("  PMX:     {}", args.pmx_dir.as_path().display());
+        eprintln!();
+        eprintln!("Place your .glb/.gltf files in the models directory,");
+        eprintln!("or .pmx files in the PMX directory, then try again.");
+        return Ok(());
     }
     let music_files = discover_music_files(&args.music_dir)?;
     let stage_dir = resolved_stage_dir(&args.stage_dir, &runtime_cfg);

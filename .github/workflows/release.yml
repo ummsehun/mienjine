@@ -1,0 +1,147 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release version (e.g., v0.1.0)'
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+    name: Build ${{ matrix.target }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: macos-latest
+            target: aarch64-apple-darwin
+            artifact_name: terminal-miku3d-macos-arm64
+            binary: terminal-miku3d
+            launcher: start.sh
+
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            artifact_name: terminal-miku3d-windows-x64
+            binary: terminal-miku3d.exe
+            launcher: start.bat
+
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            artifact_name: terminal-miku3d-linux-x64
+            binary: terminal-miku3d
+            launcher: start.sh
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Build release
+        run: cargo build --release --target ${{ matrix.target }}
+
+      - name: Create release package
+        shell: bash
+        run: |
+          PKG_DIR="${{ matrix.artifact_name }}"
+          mkdir -p "$PKG_DIR"/assets/{glb,stage,pmx,vmd,camera,music,sync}
+          mkdir -p "$PKG_DIR/bin"
+
+          # Copy binary
+          if [ "${{ matrix.os }}" = "windows-latest" ]; then
+            cp "target/${{ matrix.target }}/release/${{ matrix.binary }}" "$PKG_DIR/bin/"
+          else
+            cp "target/${{ matrix.target }}/release/${{ matrix.binary }}" "$PKG_DIR/bin/"
+            chmod +x "$PKG_DIR/bin/${{ matrix.binary }}"
+          fi
+
+          # Copy config
+          cp Gascii.config "$PKG_DIR/" 2>/dev/null || true
+
+          # Create launcher
+          if [ "${{ matrix.os }}" = "windows-latest" ]; then
+            cat > "$PKG_DIR/start.bat" << 'BATEOF'
+            @echo off
+            setlocal enabledelayedexpansion
+            cd /d "%~dp0"
+            chcp 65001 >nul 2>&1
+            if not exist "assets\glb" mkdir "assets\glb"
+            if not exist "assets\stage" mkdir "assets\stage"
+            if not exist "assets\pmx" mkdir "assets\pmx"
+            if not exist "assets\vmd" mkdir "assets\vmd"
+            if not exist "assets\camera" mkdir "assets\camera"
+            if not exist "assets\music" mkdir "assets\music"
+            if not exist "assets\sync" mkdir "assets\sync"
+            if not exist "bin\terminal-miku3d.exe" (
+              echo Error: Binary not found at bin\terminal-miku3d.exe
+              pause
+              exit /b 1
+            )
+            bin\terminal-miku3d.exe start %*
+            BATEOF
+          else
+            cat > "$PKG_DIR/start.sh" << 'SHEOF'
+            #!/usr/bin/env bash
+            set -euo pipefail
+            SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+            BINARY="${SCRIPT_DIR}/bin/terminal-miku3d"
+            if [ ! -f "$BINARY" ]; then
+              echo "Error: Binary not found at ${BINARY}"
+              exit 1
+            fi
+            chmod +x "$BINARY"
+            mkdir -p "${SCRIPT_DIR}/assets"/{glb,stage,pmx,vmd,camera,music,sync}
+            export LC_ALL="${LC_ALL:-en_US.UTF-8}"
+            export LANG="${LANG:-en_US.UTF-8}"
+            exec "$BINARY" start "$@"
+            SHEOF
+            chmod +x "$PKG_DIR/start.sh"
+          fi
+
+      - name: Package archive
+        shell: bash
+        run: |
+          PKG_DIR="${{ matrix.artifact_name }}"
+          if [ "${{ matrix.os }}" = "windows-latest" ]; then
+            7z a "${{ matrix.artifact_name }}.zip" "$PKG_DIR/"
+          else
+            tar -czf "${{ matrix.artifact_name }}.tar.gz" "$PKG_DIR/"
+          fi
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact_name }}
+          path: |
+            ${{ matrix.artifact_name }}.zip
+            ${{ matrix.artifact_name }}.tar.gz
+
+  release:
+    name: Create Release
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
+    steps:
+      - uses: actions/download-artifact@v4
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            */*.zip
+            */*.tar.gz
+          generate_release_notes: true

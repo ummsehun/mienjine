@@ -32,6 +32,7 @@ pub struct GraphicsPresentOptions {
     pub scale: f32,
     pub display_cells: Option<(u16, u16)>,
     pub force_reupload: bool,
+    pub z_index: i32,
 }
 
 impl Default for GraphicsPresentOptions {
@@ -44,6 +45,7 @@ impl Default for GraphicsPresentOptions {
             scale: 1.0,
             display_cells: None,
             force_reupload: false,
+            z_index: 1,
         }
     }
 }
@@ -205,6 +207,7 @@ pub fn write_graphics_frame(
             options.compression,
             options.recover_strategy,
             options.force_reupload,
+            options.z_index,
         ),
         GraphicsProtocol::Iterm2 => write_iterm2_frame(writer, &encoded.bytes),
         _ => Err(io::Error::new(
@@ -267,6 +270,7 @@ fn write_kitty_frame(
     compression: KittyCompression,
     recover_strategy: RecoverStrategy,
     force_reupload: bool,
+    z_index: i32,
 ) -> io::Result<()> {
     let lock = KITTY_STATE.get_or_init(|| Mutex::new(KittyGraphicsState::new()));
     let mut state = lock
@@ -277,6 +281,18 @@ fn write_kitty_frame(
     if should_reupload && state.uploaded && matches!(recover_strategy, RecoverStrategy::Hard) {
         write_kitty_delete(writer, state.image_id, state.placement_id)?;
         state.uploaded = false;
+    }
+
+    // Placement-only reuse: image already uploaded and nothing changed.
+    if state.uploaded && !should_reupload {
+        return write_kitty_placement_only(
+            writer,
+            cells_w,
+            cells_h,
+            state.image_id,
+            state.placement_id,
+            z_index,
+        );
     }
 
     let effective_compression = if matches!(transport, KittyTransport::Shm) {
@@ -295,6 +311,7 @@ fn write_kitty_frame(
             source_px_h,
             state.image_id,
             state.placement_id,
+            z_index,
         ),
         KittyTransport::Direct => write_kitty_frame_direct(
             writer,
@@ -306,6 +323,7 @@ fn write_kitty_frame(
             effective_compression,
             state.image_id,
             state.placement_id,
+            z_index,
         ),
     };
 
@@ -321,10 +339,11 @@ fn write_kitty_frame_mmap_file(
     png: &[u8],
     cells_w: u16,
     cells_h: u16,
-    source_px_w: u32,
-    source_px_h: u32,
+    _source_px_w: u32,
+    _source_px_h: u32,
     image_id: u32,
     placement_id: u32,
+    z_index: i32,
 ) -> io::Result<()> {
     let lock = SHM_REGISTRY.get_or_init(|| Mutex::new(None));
     let mut guard = lock
@@ -339,15 +358,13 @@ fn write_kitty_frame_mmap_file(
     frame.write_bytes(png)?;
 
     let payload = STANDARD.encode(frame.path.to_string_lossy().as_bytes());
-    let px_w = source_px_w.max(1);
-    let px_h = source_px_h.max(1);
     write!(writer, "\x1b[H")?;
     write!(
         writer,
-        "\x1b_Ga=T,i={image_id},p={placement_id},f=100,t=f,c={cells_w},r={cells_h},s={px_w},v={px_h},S={};{}\x1b\\",
+        "\x1b_Ga=T,i={image_id},p={placement_id},f=100,t=f,c={cells_w},r={cells_h},z={z_index},S={};{}\x1b\\",
         frame.used_len, payload
     )?;
-    writer.flush()
+    Ok(())
 }
 
 fn write_kitty_frame_direct(
@@ -355,27 +372,23 @@ fn write_kitty_frame_direct(
     png: &[u8],
     cells_w: u16,
     cells_h: u16,
-    source_px_w: u32,
-    source_px_h: u32,
+    _source_px_w: u32,
+    _source_px_h: u32,
     compression: KittyCompression,
     image_id: u32,
     placement_id: u32,
+    z_index: i32,
 ) -> io::Result<()> {
-    // Current runtime keeps direct path uncompressed for lower CPU cost; zlib is reserved for
-    // future optimization passes once transport overhead is measured.
     let _ = compression;
     let data = STANDARD.encode(png);
-    let px_w = source_px_w.max(1);
-    let px_h = source_px_h.max(1);
 
     write!(writer, "\x1b[H")?;
 
     if data.len() <= KITTY_CHUNK_LEN {
         write!(
             writer,
-            "\x1b_Ga=T,i={image_id},p={placement_id},f=100,t=d,c={cells_w},r={cells_h},s={px_w},v={px_h};{data}\x1b\\"
+            "\x1b_Ga=T,i={image_id},p={placement_id},f=100,t=d,c={cells_w},r={cells_h},z={z_index};{data}\x1b\\"
         )?;
-        writer.flush()?;
         return Ok(());
     }
 
@@ -388,7 +401,7 @@ fn write_kitty_frame_direct(
         if first {
             write!(
                 writer,
-                "\x1b_Ga=T,i={image_id},p={placement_id},f=100,t=d,c={cells_w},r={cells_h},s={px_w},v={px_h},m={more};{chunk}\x1b\\"
+                "\x1b_Ga=T,i={image_id},p={placement_id},f=100,t=d,c={cells_w},r={cells_h},z={z_index},m={more};{chunk}\x1b\\"
             )?;
             first = false;
         } else {
@@ -396,13 +409,28 @@ fn write_kitty_frame_direct(
         }
         offset = end;
     }
-    writer.flush()
+    Ok(())
+}
+
+fn write_kitty_placement_only(
+    writer: &mut impl Write,
+    cells_w: u16,
+    cells_h: u16,
+    image_id: u32,
+    placement_id: u32,
+    z_index: i32,
+) -> io::Result<()> {
+    write!(writer, "\x1b[H")?;
+    write!(
+        writer,
+        "\x1b_Ga=p,i={image_id},p={placement_id},c={cells_w},r={cells_h},z={z_index}\x1b\\"
+    )?;
+    Ok(())
 }
 
 fn write_kitty_delete(writer: &mut impl Write, image_id: u32, placement_id: u32) -> io::Result<()> {
-    write!(writer, "\x1b_Ga=d,d=P,p={placement_id}\x1b\\")?;
-    write!(writer, "\x1b_Ga=d,d=I,i={image_id}\x1b\\")?;
-    writer.flush()
+    write!(writer, "\x1b_Ga=d,d=i,i={image_id},p={placement_id}\x1b\\")?;
+    Ok(())
 }
 
 fn write_iterm2_frame(writer: &mut impl Write, png: &[u8]) -> io::Result<()> {
@@ -412,7 +440,7 @@ fn write_iterm2_frame(writer: &mut impl Write, png: &[u8]) -> io::Result<()> {
         writer,
         "\x1b]1337;File=inline=1;width=100%;height=100%;preserveAspectRatio=0:{data}\x07"
     )?;
-    writer.flush()
+    Ok(())
 }
 
 fn next_shm_path() -> PathBuf {
