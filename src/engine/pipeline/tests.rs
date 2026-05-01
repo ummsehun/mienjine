@@ -1,7 +1,9 @@
 use std::path::Path;
 
 use super::*;
-use crate::animation::{AnimationChannel, AnimationClip, ChannelTarget, ChannelValues, Interpolation};
+use crate::animation::{
+    AnimationChannel, AnimationClip, ChannelTarget, ChannelValues, Interpolation,
+};
 use crate::assets::vmd_motion::parse_vmd_motion;
 use crate::engine::skeleton::reset_poses_from_nodes;
 use crate::loader;
@@ -162,11 +164,9 @@ fn prepare_frame_applies_pmx_physics_before_skinning() {
     };
 
     let mut pipeline = FramePipeline::new(&scene);
-    let mut physics = PmxPhysicsState::from_scene(
-        &scene,
-        crate::runtime::state::RuntimePmxSettings::default(),
-    )
-    .expect("physics state");
+    let mut physics =
+        PmxPhysicsState::from_scene(&scene, crate::runtime::state::RuntimePmxSettings::default())
+            .expect("physics state");
     pipeline.prepare_frame(&scene, 0.0, None, Some(&mut physics), 0.2);
 
     let root_y = pipeline.globals()[0].transform_point3(Vec3::ZERO).y;
@@ -253,11 +253,9 @@ fn real_rabbit_pmx_vmd_pipeline_stays_finite() {
     let animation_index = scene.animations.len().checked_sub(1);
 
     let mut pipeline = FramePipeline::new(&scene);
-    let mut physics = PmxPhysicsState::from_scene(
-        &scene,
-        crate::runtime::state::RuntimePmxSettings::default(),
-    )
-    .expect("physics state");
+    let mut physics =
+        PmxPhysicsState::from_scene(&scene, crate::runtime::state::RuntimePmxSettings::default())
+            .expect("physics state");
 
     for sample_time in [0.0_f32, 1.0 / 60.0, 0.5, 1.0] {
         pipeline.prepare_frame(
@@ -316,11 +314,9 @@ fn debug_rabbit_pmx_vmd_outlier_bones() {
     );
     debug_rabbit_focus("pre_physics", &scene, &pre_physics_globals);
 
-    let mut physics = PmxPhysicsState::from_scene(
-        &scene,
-        crate::runtime::state::RuntimePmxSettings::default(),
-    )
-    .expect("physics state");
+    let mut physics =
+        PmxPhysicsState::from_scene(&scene, crate::runtime::state::RuntimePmxSettings::default())
+            .expect("physics state");
     physics.step(&scene, &mut poses, &pre_physics_globals, 1.0 / 60.0);
 
     let mut post_physics_globals = Vec::new();

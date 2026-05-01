@@ -1,6 +1,6 @@
 use glam::{Quat, Vec3};
 
-use crate::engine::pmx_rig::types::{PmxRigMeta};
+use crate::engine::pmx_rig::types::PmxRigMeta;
 
 /// Apply PMX append rotation/translation in a best-effort way.
 ///

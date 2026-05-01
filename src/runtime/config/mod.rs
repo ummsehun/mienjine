@@ -28,11 +28,7 @@ pub fn load_gascii_config(path: &Path) -> GasciiConfig {
         let Some((raw_key, raw_value)) = line.split_once('=') else {
             continue;
         };
-        let key = raw_key
-            .trim()
-            .to_ascii_lowercase()
-            .replace('-', "_")
-            .replace(' ', "_");
+        let key = raw_key.trim().to_ascii_lowercase().replace(['-', ' '], "_");
         let value = raw_value.trim();
 
         general::apply_general(&key, value, &mut cfg);

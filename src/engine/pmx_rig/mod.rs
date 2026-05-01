@@ -9,19 +9,13 @@ pub use physics_meta::{
 };
 
 mod types;
-pub use types::{
-    IKChain, IKLink, PmxBoneMeta, PmxGrantTransform, PmxRigMeta,
-};
+pub use types::{IKChain, IKLink, PmxBoneMeta, PmxGrantTransform, PmxRigMeta};
 
 mod bone;
-pub use bone::{
-    apply_append_bone_transforms, apply_pmx_bone_axis_constraints,
-};
+pub use bone::{apply_append_bone_transforms, apply_pmx_bone_axis_constraints};
 
 mod ik;
-pub use ik::{
-    compute_bone_position, solve_ik_chain_ccd,
-};
+pub use ik::{compute_bone_position, solve_ik_chain_ccd};
 
 #[cfg(test)]
 mod tests;

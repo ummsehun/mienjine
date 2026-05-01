@@ -6,8 +6,8 @@ pub mod runtime;
 pub(crate) mod shared;
 
 // DDD 신규 계층 (Phase 1)
-pub mod domain;
 pub mod application;
+pub mod domain;
 pub mod infrastructure;
 
 // Interfaces 계층 (Phase 5)

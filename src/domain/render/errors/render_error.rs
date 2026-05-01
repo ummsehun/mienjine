@@ -26,6 +26,8 @@ pub enum RenderError {
 
 impl From<anyhow::Error> for RenderError {
     fn from(err: anyhow::Error) -> Self {
-        RenderError::LegacyFailure { message: err.to_string() }
+        RenderError::LegacyFailure {
+            message: err.to_string(),
+        }
     }
 }

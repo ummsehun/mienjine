@@ -3,6 +3,7 @@ use std::{fs, path::PathBuf};
 use super::common::default_body_animation_index;
 use super::*;
 use crate::{
+    interfaces::tui::start_ui::{StageChoice, StageTransform},
     renderer::Camera,
     renderer::RenderStats,
     runtime::{
@@ -20,7 +21,6 @@ use crate::{
             is_terminal_size_unstable,
         },
     },
-    interfaces::tui::start_ui::{StageChoice, StageTransform},
     scene::{
         CameraControlMode, CameraFocusMode, CameraMode, CenterLockMode, CinematicCameraMode,
         ColorMode, PerfProfile, RenderConfig, RenderMode, SyncPolicy, SyncSpeedMode,

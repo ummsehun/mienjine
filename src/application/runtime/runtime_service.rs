@@ -1,8 +1,14 @@
+use crate::application::error::ApplicationError;
 use crate::domain::runtime::entities::app_session::AppSession;
 use crate::domain::shared::ids::SessionId;
-use crate::application::error::ApplicationError;
 
 pub struct RuntimeService;
+
+impl Default for RuntimeService {
+    fn default() -> Self {
+        Self::new()
+    }
+}
 
 impl RuntimeService {
     pub fn new() -> Self {

@@ -2,12 +2,13 @@ use anyhow::{Result, bail};
 
 use crate::{
     cli::StartArgs,
+    interfaces::tui::start_ui::{StartWizardDefaults, run_start_wizard},
     runtime::{
         app::{load_runtime_config, resolve_animation_index},
         asset_discovery::{
             discover_camera_vmds, discover_glb_files, discover_music_files, discover_pmx_files,
-            discover_stage_sets, discover_vmd_files, resolve_camera_vmd_choice, resolved_camera_dir,
-            resolved_stage_dir,
+            discover_stage_sets, discover_vmd_files, resolve_camera_vmd_choice,
+            resolved_camera_dir, resolved_stage_dir,
         },
         options::{
             default_color_mode_for_mode, resolve_effective_color_mode,
@@ -17,7 +18,6 @@ use crate::{
         pmx_log,
         render_loop::run_scene_interactive,
     },
-    interfaces::tui::start_ui::{StartWizardDefaults, run_start_wizard},
     scene::RenderMode,
 };
 

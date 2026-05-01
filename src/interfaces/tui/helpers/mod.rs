@@ -7,7 +7,7 @@ use rodio::{Decoder, Source};
 use crate::{
     loader,
     runtime::config::UiLanguage,
-    scene::{estimate_cell_aspect_from_window, SyncSpeedMode},
+    scene::{SyncSpeedMode, estimate_cell_aspect_from_window},
 };
 
 pub(crate) use crate::shared::constants::{SYNC_OFFSET_LIMIT_MS, SYNC_OFFSET_STEP_MS};

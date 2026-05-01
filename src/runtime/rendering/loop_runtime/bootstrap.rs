@@ -9,6 +9,7 @@ use anyhow::Result;
 use glam::Vec3;
 
 use crate::{
+    interfaces::cli::terminal_interface::{PresentMode, TerminalProfile, TerminalSession},
     pipeline::FramePipeline,
     renderer::{FrameBuffers, GlyphRamp, RenderScratch, RenderStats},
     runtime::{
@@ -27,7 +28,6 @@ use crate::{
     scene::{
         CameraControlMode, RenderConfig, RenderOutputMode, SceneCpu, StageRole, resolve_cell_aspect,
     },
-    interfaces::cli::terminal_interface::{PresentMode, TerminalProfile, TerminalSession},
 };
 
 use super::helpers::{detect_terminal_cell_aspect, resize_runtime_frame, validated_terminal_size};
@@ -216,7 +216,7 @@ pub(super) fn bootstrap_runtime(
     let screen_fit = ScreenFitController::default();
     let exposure_auto_boost = ExposureAutoBoost::default();
     let is_pmx_scene = scene.pmx_rig_meta.is_some();
-    let base_triangle_stride = config.triangle_stride.max(1) as usize;
+    let base_triangle_stride = config.triangle_stride.max(1);
     let base_min_triangle_area_px2 = config.min_triangle_area_px2.max(0.0);
     let center_lock_restore_after_freefly = center_lock_enabled;
     let io_failure_count: u8 = 0;

@@ -1,9 +1,9 @@
 use std::time::Instant;
 
 use crate::{
+    interfaces::cli::terminal_interface::PresentMode,
     runtime::options::color_path_label,
     scene::{RenderConfig, RenderOutputMode},
-    interfaces::cli::terminal_interface::PresentMode,
 };
 
 use super::bootstrap::BootstrapState;

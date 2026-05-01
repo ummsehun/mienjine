@@ -108,7 +108,9 @@ impl PresetStore {
     }
 
     pub fn set_last_used(&mut self, name: Option<String>) -> Result<()> {
-        if let Some(ref key) = name && !self.file.presets.contains_key(key) {
+        if let Some(ref key) = name
+            && !self.file.presets.contains_key(key)
+        {
             bail!("preset '{key}' not found")
         }
         self.file.last_used = name;
@@ -155,7 +157,10 @@ mod tests {
 
         let loaded = PresetStore::load(&path).expect("reload");
         assert_eq!(loaded.last_used(), Some("balanced"));
-        assert_eq!(loaded.get("balanced").map(|p| p.render.mode.as_str()), Some("ascii"));
+        assert_eq!(
+            loaded.get("balanced").map(|p| p.render.mode.as_str()),
+            Some("ascii")
+        );
     }
 
     #[test]

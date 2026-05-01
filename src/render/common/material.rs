@@ -68,16 +68,14 @@ pub(crate) fn sample_material(
         return material;
     }
     let base_material = if let Some(index) = material_index {
-        if let Some(mat) = scene.materials.get(index) {
-            Some(apply_material_morph_to_index(
+        scene.materials.get(index).map(|mat| {
+            apply_material_morph_to_index(
                 mat,
                 index,
                 &scene.material_morphs,
                 material_morph_weights,
-            ))
-        } else {
-            None
-        }
+            )
+        })
     } else {
         None
     };
@@ -93,85 +91,85 @@ pub(crate) fn sample_material(
         color[1] *= material.base_color_factor[1];
         color[2] *= material.base_color_factor[2];
         color[3] *= material.base_color_factor[3];
-        if let Some(texture_index) = material.base_color_texture {
-            if let Some(texture) = scene.textures.get(texture_index) {
-                let mut selected_uv = match material
-                    .base_color_uv_transform
-                    .and_then(|transform| transform.tex_coord_override)
-                    .unwrap_or(material.base_color_tex_coord)
-                {
-                    0 => uv0,
-                    1 => uv1,
-                    _ => uv0,
-                };
-                if let Some(transform) = material.base_color_uv_transform {
-                    selected_uv = apply_uv_transform(selected_uv, transform);
-                }
-                let sampling_mode = match config.texture_sampler {
-                    TextureSamplerMode::Override => config.texture_sampling,
-                    TextureSamplerMode::Gltf => {
-                        if matches!(material.base_color_mag_filter, TextureFilterMode::Nearest)
-                            || matches!(material.base_color_min_filter, TextureFilterMode::Nearest)
-                        {
-                            TextureSamplingMode::Nearest
-                        } else {
-                            TextureSamplingMode::Bilinear
-                        }
-                    }
-                };
-                let sampling_mode = prefer_sampling_for_focus(sampling_mode, config.camera_focus);
-                let mip_level =
-                    select_mip_level(texture, depth, config.texture_mip_bias, config.camera_focus);
-                let sampled = sample_texture_rgba(
-                    texture,
-                    selected_uv,
-                    sampling_mode,
-                    config.texture_v_origin,
-                    material.base_color_wrap_s,
-                    material.base_color_wrap_t,
-                    mip_level,
-                );
-                let sample_rgb = match texture.color_space {
-                    TextureColorSpace::Srgb => [
-                        srgb_to_linear(sampled[0]),
-                        srgb_to_linear(sampled[1]),
-                        srgb_to_linear(sampled[2]),
-                    ],
-                    TextureColorSpace::Linear => [sampled[0], sampled[1], sampled[2]],
-                };
-                color[0] *= sample_rgb[0];
-                color[1] *= sample_rgb[1];
-                color[2] *= sample_rgb[2];
-                color[3] *= sampled[3];
+        if let Some(texture_index) = material.base_color_texture
+            && let Some(texture) = scene.textures.get(texture_index)
+        {
+            let mut selected_uv = match material
+                .base_color_uv_transform
+                .and_then(|transform| transform.tex_coord_override)
+                .unwrap_or(material.base_color_tex_coord)
+            {
+                0 => uv0,
+                1 => uv1,
+                _ => uv0,
+            };
+            if let Some(transform) = material.base_color_uv_transform {
+                selected_uv = apply_uv_transform(selected_uv, transform);
             }
+            let sampling_mode = match config.texture_sampler {
+                TextureSamplerMode::Override => config.texture_sampling,
+                TextureSamplerMode::Gltf => {
+                    if matches!(material.base_color_mag_filter, TextureFilterMode::Nearest)
+                        || matches!(material.base_color_min_filter, TextureFilterMode::Nearest)
+                    {
+                        TextureSamplingMode::Nearest
+                    } else {
+                        TextureSamplingMode::Bilinear
+                    }
+                }
+            };
+            let sampling_mode = prefer_sampling_for_focus(sampling_mode, config.camera_focus);
+            let mip_level =
+                select_mip_level(texture, depth, config.texture_mip_bias, config.camera_focus);
+            let sampled = sample_texture_rgba(
+                texture,
+                selected_uv,
+                sampling_mode,
+                config.texture_v_origin,
+                material.base_color_wrap_s,
+                material.base_color_wrap_t,
+                mip_level,
+            );
+            let sample_rgb = match texture.color_space {
+                TextureColorSpace::Srgb => [
+                    srgb_to_linear(sampled[0]),
+                    srgb_to_linear(sampled[1]),
+                    srgb_to_linear(sampled[2]),
+                ],
+                TextureColorSpace::Linear => [sampled[0], sampled[1], sampled[2]],
+            };
+            color[0] *= sample_rgb[0];
+            color[1] *= sample_rgb[1];
+            color[2] *= sample_rgb[2];
+            color[3] *= sampled[3];
         }
 
-        if let Some(texture_index) = material.sphere_texture {
-            if let Some(texture) = scene.textures.get(texture_index) {
-                let sphere_uv = sphere_map_uv(world_normal);
-                let sampling_mode =
-                    prefer_sampling_for_focus(config.texture_sampling, config.camera_focus);
-                let sampled = sample_texture_rgba(
-                    texture,
-                    sphere_uv,
-                    sampling_mode,
-                    config.texture_v_origin,
-                    TextureWrapMode::Repeat,
-                    TextureWrapMode::Repeat,
-                    0,
-                );
-                let sample_rgb = match texture.color_space {
-                    TextureColorSpace::Srgb => [
-                        srgb_to_linear(sampled[0]),
-                        srgb_to_linear(sampled[1]),
-                        srgb_to_linear(sampled[2]),
-                    ],
-                    TextureColorSpace::Linear => [sampled[0], sampled[1], sampled[2]],
-                };
-                color[0] *= sample_rgb[0];
-                color[1] *= sample_rgb[1];
-                color[2] *= sample_rgb[2];
-            }
+        if let Some(texture_index) = material.sphere_texture
+            && let Some(texture) = scene.textures.get(texture_index)
+        {
+            let sphere_uv = sphere_map_uv(world_normal);
+            let sampling_mode =
+                prefer_sampling_for_focus(config.texture_sampling, config.camera_focus);
+            let sampled = sample_texture_rgba(
+                texture,
+                sphere_uv,
+                sampling_mode,
+                config.texture_v_origin,
+                TextureWrapMode::Repeat,
+                TextureWrapMode::Repeat,
+                0,
+            );
+            let sample_rgb = match texture.color_space {
+                TextureColorSpace::Srgb => [
+                    srgb_to_linear(sampled[0]),
+                    srgb_to_linear(sampled[1]),
+                    srgb_to_linear(sampled[2]),
+                ],
+                TextureColorSpace::Linear => [sampled[0], sampled[1], sampled[2]],
+            };
+            color[0] *= sample_rgb[0];
+            color[1] *= sample_rgb[1];
+            color[2] *= sample_rgb[2];
         }
 
         if let Some(toon_source) = material.toon_source {

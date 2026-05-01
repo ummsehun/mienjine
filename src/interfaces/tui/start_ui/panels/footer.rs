@@ -3,8 +3,8 @@ use ratatui::widgets::{Block, Borders, Paragraph, Wrap};
 
 use super::super::state::StartWizardState;
 use super::super::theme::start_ui_theme;
-use super::super::types::{RenderDetailMode, StartWizardStep, UiBreakpoint};
 use super::super::tr;
+use super::super::types::{RenderDetailMode, StartWizardStep, UiBreakpoint};
 use crate::runtime::config::UiLanguage;
 
 pub fn draw_action_bar(

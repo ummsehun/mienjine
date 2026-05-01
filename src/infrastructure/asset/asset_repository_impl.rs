@@ -5,13 +5,21 @@ use crate::domain::asset::{
     entities::asset::Asset,
     errors::asset_error::AssetError,
     repositories::asset_repository::{AssetPort, AssetRepository},
-    value_objects::{asset_format::AssetFormat, asset_metadata::AssetMetadata, asset_path::AssetPath},
+    value_objects::{
+        asset_format::AssetFormat, asset_metadata::AssetMetadata, asset_path::AssetPath,
+    },
 };
 use crate::domain::shared::ids::AssetId;
 
 static NEXT_ASSET_ID: AtomicU64 = AtomicU64::new(1);
 
 pub struct LegacyAssetAdapter;
+
+impl Default for LegacyAssetAdapter {
+    fn default() -> Self {
+        Self::new()
+    }
+}
 
 impl LegacyAssetAdapter {
     pub fn new() -> Self {

@@ -3,8 +3,8 @@ use ratatui::widgets::{Block, Borders, Paragraph, Wrap};
 
 use super::super::state::StartWizardState;
 use super::super::tr;
-use crate::runtime::config::UiLanguage;
 use crate::interfaces::tui::helpers::aspect_preview_ascii;
+use crate::runtime::config::UiLanguage;
 
 pub fn draw_aspect_calibration(
     frame: &mut Frame,

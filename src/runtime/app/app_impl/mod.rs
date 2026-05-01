@@ -6,6 +6,7 @@ use tracing;
 use crate::{
     assets::vmd_motion::parse_vmd_motion,
     cli::{BenchArgs, Cli, Commands, PreprocessArgs, RunArgs, RunSceneArg},
+    interfaces::tui::start_ui::StageStatus,
     pipeline::FramePipeline,
     render::backend::render_frame_with_backend,
     renderer::{Camera, FrameBuffers, GlyphRamp, RenderScratch},
@@ -30,7 +31,6 @@ use crate::{
         render_loop::run_scene_interactive,
         state::{RuntimeCameraSettings, resolve_runtime_backend},
     },
-    interfaces::tui::start_ui::StageStatus,
     scene::{CellAspectMode, resolve_cell_aspect},
 };
 
@@ -103,29 +103,29 @@ fn run_interactive(args: RunArgs) -> Result<()> {
     let pmx_settings = resolve_pmx_settings_for_run(&args, &runtime_cfg);
     let (mut scene, mut animation_index, rotates_without_animation) = load_scene_for_run(&args)?;
 
-    if matches!(args.scene, RunSceneArg::Pmx) {
-        if let Some(motion_path) = args.motion_vmd.as_deref() {
-            match parse_vmd_motion(motion_path) {
-                Ok(vmd) => {
-                    let clip = vmd.to_clip_for_scene(&scene);
-                    if clip.channels.is_empty() {
-                        tracing::warn!(
-                            "VMD clip has no matched channels; bone/morph names may not match this PMX."
-                        );
-                    }
-                    scene.animations.push(clip);
-                    animation_index = if scene.animations.is_empty() {
-                        None
-                    } else {
-                        Some(scene.animations.len() - 1)
-                    };
-                }
-                Err(err) => {
+    if matches!(args.scene, RunSceneArg::Pmx)
+        && let Some(motion_path) = args.motion_vmd.as_deref()
+    {
+        match parse_vmd_motion(motion_path) {
+            Ok(vmd) => {
+                let clip = vmd.to_clip_for_scene(&scene);
+                if clip.channels.is_empty() {
                     tracing::warn!(
-                        "failed to parse PMX motion VMD {}: {err}",
-                        motion_path.display()
+                        "VMD clip has no matched channels; bone/morph names may not match this PMX."
                     );
                 }
+                scene.animations.push(clip);
+                animation_index = if scene.animations.is_empty() {
+                    None
+                } else {
+                    Some(scene.animations.len() - 1)
+                };
+            }
+            Err(err) => {
+                tracing::warn!(
+                    "failed to parse PMX motion VMD {}: {err}",
+                    motion_path.display()
+                );
             }
         }
     }

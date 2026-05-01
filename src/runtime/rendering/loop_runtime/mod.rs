@@ -152,10 +152,9 @@ pub(crate) fn run_scene_interactive(
             && state
                 .prev_animation_time
                 .is_some_and(|previous| animation_time + 1e-4 < previous)
+            && let Some(physics_state) = state.pmx_physics_state.as_mut()
         {
-            if let Some(physics_state) = state.pmx_physics_state.as_mut() {
-                physics_state.reset(&state.scene);
-            }
+            physics_state.reset(&state.scene);
         }
         state.prev_animation_time = Some(animation_time);
         let scene = &state.scene;
@@ -289,32 +288,28 @@ pub(crate) fn run_scene_interactive(
                     ),
             )
         };
-        if state.runtime_camera.track_enabled {
-            if let Some(track) = state.loaded_camera_track.as_ref() {
-                if let Some(vmd_pose) =
-                    track
-                        .sampler
-                        .sample_pose(animation_time, track.transform, true)
-                {
-                    match state.runtime_camera.active_track_mode {
-                        CameraMode::Off => {}
-                        CameraMode::Vmd => {
-                            camera.eye = vmd_pose.eye;
-                            camera.target = vmd_pose.target;
-                            camera.up = vmd_pose.up;
-                            frame_config.fov_deg = vmd_pose.fov_deg;
-                        }
-                        CameraMode::Blend => {
-                            camera.eye = camera.eye.lerp(vmd_pose.eye, 0.70);
-                            camera.target = camera.target.lerp(vmd_pose.target, 0.70);
-                            camera.up = camera.up.lerp(vmd_pose.up, 0.70).normalize_or_zero();
-                            if camera.up.length_squared() <= f32::EPSILON {
-                                camera.up = Vec3::Y;
-                            }
-                            frame_config.fov_deg =
-                                frame_config.fov_deg * 0.30 + vmd_pose.fov_deg * 0.70;
-                        }
+        if state.runtime_camera.track_enabled
+            && let Some(track) = state.loaded_camera_track.as_ref()
+            && let Some(vmd_pose) = track
+                .sampler
+                .sample_pose(animation_time, track.transform, true)
+        {
+            match state.runtime_camera.active_track_mode {
+                CameraMode::Off => {}
+                CameraMode::Vmd => {
+                    camera.eye = vmd_pose.eye;
+                    camera.target = vmd_pose.target;
+                    camera.up = vmd_pose.up;
+                    frame_config.fov_deg = vmd_pose.fov_deg;
+                }
+                CameraMode::Blend => {
+                    camera.eye = camera.eye.lerp(vmd_pose.eye, 0.70);
+                    camera.target = camera.target.lerp(vmd_pose.target, 0.70);
+                    camera.up = camera.up.lerp(vmd_pose.up, 0.70).normalize_or_zero();
+                    if camera.up.length_squared() <= f32::EPSILON {
+                        camera.up = Vec3::Y;
                     }
+                    frame_config.fov_deg = frame_config.fov_deg * 0.30 + vmd_pose.fov_deg * 0.70;
                 }
             }
         }
@@ -443,25 +438,22 @@ pub(crate) fn run_scene_interactive(
         ));
 
         let elapsed_frame = frame_start.elapsed();
-        if let Some(frame_budget) = state.frame_budget {
-            if elapsed_frame < frame_budget {
-                thread::sleep(frame_budget - elapsed_frame);
-            }
+        if let Some(frame_budget) = state.frame_budget
+            && elapsed_frame < frame_budget
+        {
+            thread::sleep(frame_budget - elapsed_frame);
         }
     }
-    if let Some(profile) = state.sync_profile.as_ref() {
-        if state.sync_profile_dirty
-            && matches!(profile.mode, SyncProfileMode::Auto | SyncProfileMode::Write)
-        {
-            if let Err(err) =
-                crate::runtime::app::persist_sync_profile_offset(profile, state.sync_offset_ms)
-            {
-                eprintln!(
-                    "warning: failed to save sync profile {}: {err}",
-                    profile.store_path.display()
-                );
-            }
-        }
+    if let Some(profile) = state.sync_profile.as_ref()
+        && state.sync_profile_dirty
+        && matches!(profile.mode, SyncProfileMode::Auto | SyncProfileMode::Write)
+        && let Err(err) =
+            crate::runtime::app::persist_sync_profile_offset(profile, state.sync_offset_ms)
+    {
+        eprintln!(
+            "warning: failed to save sync profile {}: {err}",
+            profile.store_path.display()
+        );
     }
     crate::runtime::graphics_proto::cleanup_shm_registry();
     Ok(())

@@ -1,14 +1,14 @@
 use ratatui::prelude::*;
 use ratatui::widgets::{Block, Borders, Paragraph, Wrap};
 
-use super::summary_kv_line;
+use super::super::ModelBranch;
 use super::super::state::StartWizardState;
 use super::super::theme::start_ui_theme;
-use super::super::types::StageStatus;
 use super::super::tr;
-use super::super::ModelBranch;
-use crate::runtime::config::UiLanguage;
+use super::super::types::StageStatus;
+use super::summary_kv_line;
 use crate::interfaces::tui::helpers::{duration_label, fps_label};
+use crate::runtime::config::UiLanguage;
 use crate::scene::RenderBackend;
 
 pub fn draw_confirm_panel(

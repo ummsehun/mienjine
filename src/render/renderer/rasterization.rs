@@ -200,10 +200,12 @@ pub(super) fn rasterize_mesh(
                     if write_depth {
                         frame.depth[idx] = depth;
                     }
-                    if is_subject_layer && idx < subject_depth_cells.len() {
-                        if write_depth && depth_less(subject_depth_cells[idx], depth) {
-                            subject_depth_cells[idx] = depth;
-                        }
+                    if is_subject_layer
+                        && idx < subject_depth_cells.len()
+                        && write_depth
+                        && depth_less(subject_depth_cells[idx], depth)
+                    {
+                        subject_depth_cells[idx] = depth;
                     }
                     let world_pos = v0.world_pos * w0 + v1.world_pos * w1 + v2.world_pos * w2;
                     let world_normal =

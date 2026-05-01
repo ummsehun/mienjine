@@ -1,6 +1,6 @@
 use crate::domain::shared::{entity::Entity, ids::SessionId};
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct AppSession {
     id: SessionId,
     running: bool,

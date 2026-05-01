@@ -16,20 +16,38 @@ pub struct LegacyEngineAdapter {
     scenes: HashMap<SceneId, crate::scene::SceneCpu>,
 }
 
+impl Default for LegacyEngineAdapter {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl LegacyEngineAdapter {
     pub fn new() -> Self {
-        Self { scenes: HashMap::new() }
+        Self {
+            scenes: HashMap::new(),
+        }
     }
 
     pub fn load_from_path(&mut self, path: &Path) -> Result<SceneId, EngineError> {
-        let ext = path.extension().and_then(|e| e.to_str()).unwrap_or("").to_lowercase();
+        let ext = path
+            .extension()
+            .and_then(|e| e.to_str())
+            .unwrap_or("")
+            .to_lowercase();
         let scene = match ext.as_str() {
             "glb" | "gltf" => crate::assets::loader::load_gltf(path),
             "pmx" => crate::assets::loader::load_pmx(path),
             "obj" => crate::assets::loader::load_obj(path),
-            _ => return Err(EngineError::LegacyFailure { message: format!("unsupported format: {}", ext) }),
+            _ => {
+                return Err(EngineError::LegacyFailure {
+                    message: format!("unsupported format: {}", ext),
+                });
+            }
         }
-        .map_err(|e| EngineError::LegacyFailure { message: e.to_string() })?;
+        .map_err(|e| EngineError::LegacyFailure {
+            message: e.to_string(),
+        })?;
 
         let id = SceneId::new(NEXT_SCENE_ID.fetch_add(1, Ordering::Relaxed));
         self.scenes.insert(id, scene);
@@ -49,9 +67,18 @@ impl LegacyEngineAdapter {
 
 impl SceneRepository for LegacyEngineAdapter {
     fn load(&self, id: SceneId) -> Result<Scene, EngineError> {
-        let scene_cpu = self.scenes.get(&id).ok_or_else(|| EngineError::LegacyFailure { message: format!("scene not found: {}", id.0) })?;
+        let scene_cpu = self
+            .scenes
+            .get(&id)
+            .ok_or_else(|| EngineError::LegacyFailure {
+                message: format!("scene not found: {}", id.0),
+            })?;
 
-        let name = scene_cpu.nodes.first().and_then(|n| n.name.clone()).unwrap_or_else(|| "unnamed_scene".to_string());
+        let name = scene_cpu
+            .nodes
+            .first()
+            .and_then(|n| n.name.clone())
+            .unwrap_or_else(|| "unnamed_scene".to_string());
 
         let metadata = Self::scene_cpu_to_metadata(scene_cpu);
 
@@ -59,7 +86,9 @@ impl SceneRepository for LegacyEngineAdapter {
     }
 
     fn save(&self, _scene: &Scene) -> Result<(), EngineError> {
-        Err(EngineError::LegacyFailure { message: "save not yet implemented".to_string() })
+        Err(EngineError::LegacyFailure {
+            message: "save not yet implemented".to_string(),
+        })
     }
 }
 

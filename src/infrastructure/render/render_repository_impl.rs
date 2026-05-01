@@ -1,6 +1,5 @@
 use crate::domain::render::{
-    entities::render_pipeline::RenderPipeline,
-    errors::render_error::RenderError,
+    entities::render_pipeline::RenderPipeline, errors::render_error::RenderError,
     repositories::render_repository::RenderRepository,
     value_objects::render_target_spec::RenderTargetSpec,
 };
@@ -10,10 +9,19 @@ pub struct LegacyRenderAdapter {
     default_spec: RenderTargetSpec,
 }
 
+impl Default for LegacyRenderAdapter {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl LegacyRenderAdapter {
     pub fn new() -> Self {
         Self {
-            default_spec: RenderTargetSpec { width: 640, height: 360 },
+            default_spec: RenderTargetSpec {
+                width: 640,
+                height: 360,
+            },
         }
     }
 

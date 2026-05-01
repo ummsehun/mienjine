@@ -1,5 +1,6 @@
 use crate::{
     cli::{RunSceneArg, StartArgs},
+    interfaces::tui::start_ui::{ModelBranch, StartSelection},
     runtime::{
         audio_sync::prepare_audio_sync,
         options::{
@@ -8,7 +9,6 @@ use crate::{
         },
         sync_profile::SyncProfileEntry,
     },
-    interfaces::tui::start_ui::{ModelBranch, StartSelection},
     scene::SceneCpu,
 };
 
@@ -89,9 +89,7 @@ fn apply_profile_overrides(
         && effective.sync_speed_mode == defaults.sync_speed_mode
         && profile.sync_speed_mode.is_some()
     {
-        effective.sync_speed_mode = profile
-            .sync_speed_mode
-            .unwrap_or(defaults.sync_speed_mode);
+        effective.sync_speed_mode = profile.sync_speed_mode.unwrap_or(defaults.sync_speed_mode);
     }
     if args.sync_hard_snap_ms.is_none()
         && effective.sync_hard_snap_ms == defaults.sync_hard_snap_ms
@@ -102,13 +100,8 @@ fn apply_profile_overrides(
             .unwrap_or(defaults.sync_hard_snap_ms)
             .clamp(10, 2_000);
     }
-    if args.sync_kp.is_none()
-        && effective.sync_kp == defaults.sync_kp
-        && profile.sync_kp.is_some()
+    if args.sync_kp.is_none() && effective.sync_kp == defaults.sync_kp && profile.sync_kp.is_some()
     {
-        effective.sync_kp = profile
-            .sync_kp
-            .unwrap_or(defaults.sync_kp)
-            .clamp(0.01, 1.0);
+        effective.sync_kp = profile.sync_kp.unwrap_or(defaults.sync_kp).clamp(0.01, 1.0);
     }
 }

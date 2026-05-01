@@ -3,7 +3,7 @@ use crate::scene::{
     TextureSamplerMode, TextureSamplingMode, TextureWrapMode,
 };
 
-use super::{super::device::GpuError, super::GpuTexture, GpuRenderer};
+use super::{super::GpuTexture, super::device::GpuError, GpuRenderer};
 
 #[derive(Clone, Copy)]
 pub(super) struct MaterialGpuParams {
@@ -97,7 +97,10 @@ impl GpuRenderer {
         }
     }
 
-    pub(super) fn create_texture_bind_group(&self, texture: &GpuTexture) -> Result<wgpu::BindGroup, GpuError> {
+    pub(super) fn create_texture_bind_group(
+        &self,
+        texture: &GpuTexture,
+    ) -> Result<wgpu::BindGroup, GpuError> {
         self.create_texture_bind_group_with_sampler(texture, None)
     }
 
@@ -106,10 +109,12 @@ impl GpuRenderer {
         texture: &GpuTexture,
         sampler: Option<&wgpu::Sampler>,
     ) -> Result<wgpu::BindGroup, GpuError> {
-        let pipeline = self.pipeline.as_ref()
-            .ok_or_else(|| GpuError::Render("pipeline not initialized for bind group".to_string()))?;
+        let pipeline = self.pipeline.as_ref().ok_or_else(|| {
+            GpuError::Render("pipeline not initialized for bind group".to_string())
+        })?;
         let sampler = sampler.unwrap_or(&texture.sampler);
-        Ok(self.ctx
+        Ok(self
+            .ctx
             .device
             .create_bind_group(&wgpu::BindGroupDescriptor {
                 label: Some("texture_bind_group"),
@@ -179,7 +184,11 @@ impl GpuRenderer {
         }
     }
 
-    fn get_or_create_texture(&mut self, key: TextureBindingKey, texture: &TextureCpu) -> Result<(), GpuError> {
+    fn get_or_create_texture(
+        &mut self,
+        key: TextureBindingKey,
+        texture: &TextureCpu,
+    ) -> Result<(), GpuError> {
         if !self.texture_bind_groups.contains_key(&key) {
             if !self.texture_cache.contains_key(&key.texture_index) {
                 let gpu_texture = GpuTexture::new(
@@ -228,7 +237,11 @@ impl GpuRenderer {
         Ok(())
     }
 
-    pub(super) fn cache_textures_for_scene(&mut self, scene: &SceneCpu, config: &RenderConfig) -> Result<(), GpuError> {
+    pub(super) fn cache_textures_for_scene(
+        &mut self,
+        scene: &SceneCpu,
+        config: &RenderConfig,
+    ) -> Result<(), GpuError> {
         if !config.material_color {
             return Ok(());
         }

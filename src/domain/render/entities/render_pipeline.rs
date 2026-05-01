@@ -13,11 +13,15 @@ impl RenderPipeline {
         Self { id, spec }
     }
 
-    pub fn spec(&self) -> &RenderTargetSpec { &self.spec }
+    pub fn spec(&self) -> &RenderTargetSpec {
+        &self.spec
+    }
 }
 
 impl Entity for RenderPipeline {
     type Id = RenderId;
 
-    fn id(&self) -> &RenderId { &self.id }
+    fn id(&self) -> &RenderId {
+        &self.id
+    }
 }

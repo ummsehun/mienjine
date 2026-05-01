@@ -13,9 +13,9 @@ use crossterm::{
 use ratatui::{Terminal, backend::CrosstermBackend};
 
 use crate::{
+    interfaces::cli::terminal_caps::ensure_tty,
     renderer::FrameBuffers,
     runtime::graphics_proto::{GraphicsPresentOptions, write_graphics_frame},
-    interfaces::cli::terminal_caps::ensure_tty,
     runtime::terminal_diff::{build_diff_segments, quantize_rgb},
     scene::{
         AnsiQuantization, GraphicsProtocol, KittyCompression, KittyPipelineMode, KittyTransport,
@@ -25,16 +25,11 @@ use crate::{
 
 pub use crate::interfaces::cli::terminal_caps::TerminalProfile;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum PresentMode {
+    #[default]
     Diff,
     FullFallback,
-}
-
-impl Default for PresentMode {
-    fn default() -> Self {
-        Self::Diff
-    }
 }
 
 pub struct TerminalSession {

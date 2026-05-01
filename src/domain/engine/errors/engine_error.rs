@@ -26,6 +26,8 @@ pub enum EngineError {
 
 impl From<anyhow::Error> for EngineError {
     fn from(err: anyhow::Error) -> Self {
-        EngineError::LegacyFailure { message: err.to_string() }
+        EngineError::LegacyFailure {
+            message: err.to_string(),
+        }
     }
 }

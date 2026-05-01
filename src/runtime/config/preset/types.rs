@@ -1,21 +1,20 @@
-use std::{
-    collections::BTreeMap,
-};
+use std::collections::BTreeMap;
 
 use serde::{Deserialize, Serialize};
 
 use super::helpers::{
-    default_branch, default_braille_profile, default_camera_align_preset, default_camera_focus,
-    default_camera_mode, default_camera_unit_scale, default_cell_aspect_mode,
-    default_cell_aspect_trim, default_center_lock_mode, default_cinematic_camera,
-    default_clarity_profile, default_color_mode, default_contrast_profile, default_detail_profile,
-    default_edge_accent_strength, default_fps_cap, default_freefly_speed,
-    default_graphics_protocol, default_manual_cell_aspect, default_model_lift, default_mode,
+    default_ansi_quantization, default_audio_reactive, default_backend,
+    default_braille_aspect_compensation, default_braille_profile, default_branch,
+    default_camera_align_preset, default_camera_focus, default_camera_mode,
+    default_camera_unit_scale, default_cell_aspect_mode, default_cell_aspect_trim,
+    default_center_lock_mode, default_cinematic_camera, default_clarity_profile,
+    default_color_mode, default_contrast_profile, default_detail_profile,
+    default_edge_accent_strength, default_false, default_fps_cap, default_freefly_speed,
+    default_graphics_protocol, default_manual_cell_aspect, default_mode, default_model_lift,
     default_output_mode, default_perf_profile, default_reactive_gain, default_render_detail_mode,
     default_schema_version, default_stage_level, default_sync_hard_snap_ms, default_sync_kp,
     default_sync_policy, default_sync_speed_mode, default_texture_sampling, default_theme_style,
-    default_true, default_false, default_wasd_mode, default_audio_reactive,
-    default_ansi_quantization, default_backend, default_braille_aspect_compensation, unix_now_secs,
+    default_true, default_wasd_mode, unix_now_secs,
 };
 
 pub(crate) const PRESET_SCHEMA_VERSION: u32 = 1;

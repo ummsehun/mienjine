@@ -10,7 +10,11 @@ pub struct Scene {
 
 impl Scene {
     pub fn new(id: SceneId, name: SceneName) -> Self {
-        Self { id, name, metadata: SceneMetadata::default() }
+        Self {
+            id,
+            name,
+            metadata: SceneMetadata::default(),
+        }
     }
 
     pub fn with_metadata(mut self, metadata: SceneMetadata) -> Self {
@@ -18,12 +22,18 @@ impl Scene {
         self
     }
 
-    pub fn name(&self) -> &SceneName { &self.name }
-    pub fn metadata(&self) -> &SceneMetadata { &self.metadata }
+    pub fn name(&self) -> &SceneName {
+        &self.name
+    }
+    pub fn metadata(&self) -> &SceneMetadata {
+        &self.metadata
+    }
 }
 
 impl Entity for Scene {
     type Id = SceneId;
 
-    fn id(&self) -> &SceneId { &self.id }
+    fn id(&self) -> &SceneId {
+        &self.id
+    }
 }

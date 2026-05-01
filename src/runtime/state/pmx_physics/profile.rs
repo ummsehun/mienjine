@@ -330,6 +330,7 @@ fn derive_physics_profile(meta: Option<&PmxPhysicsMeta>) -> PmxPhysicsProfile {
     profile
 }
 
+#[allow(clippy::field_reassign_with_default)]
 fn derive_solver_profile(rig: &PmxRigProfile, physics: &PmxPhysicsProfile) -> PmxSolverProfile {
     if physics.is_empty() {
         return PmxSolverProfile::default();

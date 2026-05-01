@@ -8,8 +8,8 @@ mod summary;
 use ratatui::prelude::*;
 
 use super::theme::StartUiTheme;
-use crate::runtime::config::UiLanguage;
 use crate::interfaces::tui::helpers::tr;
+use crate::runtime::config::UiLanguage;
 
 fn summary_kv_line(
     ui_language: UiLanguage,

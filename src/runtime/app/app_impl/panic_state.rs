@@ -1,6 +1,5 @@
 use std::{
-    fs,
-    panic,
+    fs, panic,
     path::PathBuf,
     sync::{Mutex, Once, OnceLock},
 };
@@ -33,10 +32,7 @@ pub(crate) fn save_panic_state(state: &str) -> std::io::Result<()> {
         .or_else(|| Some(PathBuf::from("/tmp/terminal-miku3d")));
 
     let Some(dir) = dir else {
-        return Err(std::io::Error::new(
-            std::io::ErrorKind::Other,
-            "could not determine data directory",
-        ));
+        return Err(std::io::Error::other("could not determine data directory"));
     };
 
     fs::create_dir_all(&dir)?;

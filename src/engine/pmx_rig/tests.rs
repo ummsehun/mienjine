@@ -1,10 +1,12 @@
 #[cfg(test)]
 mod tests {
-    use glam::{Quat, Vec3};
-    use crate::engine::pmx_rig::types::{IKChain, IKLink, PmxBoneMeta, PmxGrantTransform, PmxRigMeta};
     use crate::engine::pmx_rig::bone::apply_append_bone_transforms;
-    use crate::engine::pmx_rig::ik::{compute_bone_position, rotation_between};
     use crate::engine::pmx_rig::bone::apply_pmx_bone_axis_constraints;
+    use crate::engine::pmx_rig::ik::{compute_bone_position, rotation_between};
+    use crate::engine::pmx_rig::types::{
+        IKChain, IKLink, PmxBoneMeta, PmxGrantTransform, PmxRigMeta,
+    };
+    use glam::{Quat, Vec3};
 
     #[test]
     fn test_empty_rig_meta() {

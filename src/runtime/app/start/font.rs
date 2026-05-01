@@ -1,5 +1,5 @@
-use crate::runtime::config::GasciiConfig;
 use crate::interfaces::cli::terminal_caps::TerminalProfile;
+use crate::runtime::config::GasciiConfig;
 
 pub(super) fn apply_startup_font_config(runtime_cfg: &GasciiConfig) {
     if runtime_cfg.font_preset_enabled {

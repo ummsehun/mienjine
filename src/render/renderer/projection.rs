@@ -42,12 +42,10 @@ pub(super) fn apply_skin(
     skin_matrices: Option<&Vec<Mat4>>,
 ) -> (Vec3, Vec3) {
     if let (Some(sdef_vertices), Some(skin_matrices)) = (mesh.sdef_vertices.as_ref(), skin_matrices)
+        && let Some(Some(sdef)) = sdef_vertices.get(vertex_index)
+        && let Some(skinned) = apply_sdef_skin(position, normal, sdef, skin_matrices)
     {
-        if let Some(Some(sdef)) = sdef_vertices.get(vertex_index) {
-            if let Some(skinned) = apply_sdef_skin(position, normal, sdef, skin_matrices) {
-                return skinned;
-            }
-        }
+        return skinned;
     }
 
     apply_linear_skin(mesh, vertex_index, position, normal, skin_matrices)
@@ -110,7 +108,7 @@ fn apply_sdef_skin(
     position: Vec3,
     normal: Vec3,
     sdef: &SdefVertexCpu,
-    skin_matrices: &Vec<Mat4>,
+    skin_matrices: &[Mat4],
 ) -> Option<(Vec3, Vec3)> {
     let w0 = sdef.bone_weight_1.clamp(0.0, 1.0);
     let w1 = 1.0 - w0;
@@ -173,15 +171,15 @@ pub(super) fn apply_morph_targets(
         if let Some(delta) = target.normal_deltas.get(vertex_index) {
             out_normal += *delta * weight;
         }
-        if let Some(deltas) = target.uv0_deltas.as_ref() {
-            if let Some(delta) = deltas.get(vertex_index) {
-                out_uv0 += *delta * weight;
-            }
+        if let Some(deltas) = target.uv0_deltas.as_ref()
+            && let Some(delta) = deltas.get(vertex_index)
+        {
+            out_uv0 += *delta * weight;
         }
-        if let Some(deltas) = target.uv1_deltas.as_ref() {
-            if let Some(delta) = deltas.get(vertex_index) {
-                out_uv1 += *delta * weight;
-            }
+        if let Some(deltas) = target.uv1_deltas.as_ref()
+            && let Some(delta) = deltas.get(vertex_index)
+        {
+            out_uv1 += *delta * weight;
         }
     }
     (

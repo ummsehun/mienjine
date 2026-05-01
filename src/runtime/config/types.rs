@@ -14,7 +14,7 @@ use crate::scene::{
 };
 
 pub use crate::runtime::config::preset::{
-    validate_preset_name, PresetStore, SavePresetResult, WizardPreset,
+    PresetStore, SavePresetResult, WizardPreset, validate_preset_name,
 };
 use crate::runtime::sync_profile::SyncProfileMode;
 

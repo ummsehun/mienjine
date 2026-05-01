@@ -1,13 +1,15 @@
 use glam::Mat4;
 
-use crate::engine::skeleton::{compute_global_matrices_in_place, compute_skin_matrices_in_place, reset_poses_from_nodes};
+use crate::engine::skeleton::{
+    compute_global_matrices_in_place, compute_skin_matrices_in_place, reset_poses_from_nodes,
+};
 use crate::scene::{NodePose, SceneCpu};
 
-use super::helpers::{
-    apply_pmx_pose_stack, is_morph_only_clip, normalized_clip_time,
-    resolve_instance_morph_weights, seed_node_morph_weights,
-};
 use super::PhysicsStepper;
+use super::helpers::{
+    apply_pmx_pose_stack, is_morph_only_clip, normalized_clip_time, resolve_instance_morph_weights,
+    seed_node_morph_weights,
+};
 
 pub struct FramePipeline {
     poses: Vec<NodePose>,
@@ -39,24 +41,23 @@ impl FramePipeline {
         scene: &SceneCpu,
         elapsed_seconds: f32,
         anim_index: Option<usize>,
-        mut physics_state: Option<&mut dyn PhysicsStepper>,
+        physics_state: Option<&mut dyn PhysicsStepper>,
         physics_dt: f32,
     ) {
         reset_poses_from_nodes(&scene.nodes, &mut self.poses);
         seed_node_morph_weights(scene, &mut self.node_morph_weights);
         self.material_morph_weights.fill(0.0);
         let mut primary_normalized_time = None;
-        if let Some(index) = anim_index {
-            if let Some(clip) = scene.animations.get(index) {
-                clip.sample_into_with_morph(
-                    elapsed_seconds,
-                    &mut self.poses,
-                    &mut self.node_morph_weights,
-                    &mut self.material_morph_weights,
-                );
-                primary_normalized_time =
-                    Some(normalized_clip_time(elapsed_seconds, clip.duration));
-            }
+        if let Some(index) = anim_index
+            && let Some(clip) = scene.animations.get(index)
+        {
+            clip.sample_into_with_morph(
+                elapsed_seconds,
+                &mut self.poses,
+                &mut self.node_morph_weights,
+                &mut self.material_morph_weights,
+            );
+            primary_normalized_time = Some(normalized_clip_time(elapsed_seconds, clip.duration));
         }
         for (index, clip) in scene.animations.iter().enumerate() {
             if Some(index) == anim_index || !is_morph_only_clip(clip) {
@@ -82,7 +83,7 @@ impl FramePipeline {
             &mut self.globals,
             &mut self.globals_visited,
         );
-        if let Some(physics) = physics_state.as_deref_mut() {
+        if let Some(physics) = physics_state {
             physics.step_physics(scene, &mut self.poses, &self.globals, physics_dt);
             apply_pmx_pose_stack(scene, &mut self.poses, true);
             compute_global_matrices_in_place(

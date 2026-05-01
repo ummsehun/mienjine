@@ -27,12 +27,12 @@ use ratatui::prelude::*;
 use ratatui::widgets::{Block, Borders, Clear as WidgetClear, Paragraph};
 
 use crate::{
-    runtime::config::{UiLanguage, preset::PresetStore},
+    interfaces::cli::terminal_interface::{RatatuiSession, TerminalProfile},
     interfaces::tui::helpers::{
         QUICK_RENDER_FIELD_COUNT, RATATUI_SAFE_MAX_CELLS, RENDER_FIELD_COUNT, START_FPS_OPTIONS,
         SYNC_OFFSET_LIMIT_MS, SYNC_OFFSET_STEP_MS, clamp_ratatui_area, cycle_index, tr,
     },
-    interfaces::cli::terminal_interface::{RatatuiSession, TerminalProfile},
+    runtime::config::{UiLanguage, preset::PresetStore},
 };
 
 use state::{PresetPromptState, StartEntry, StartWizardAction, StartWizardState};
@@ -160,7 +160,7 @@ pub fn run_start_wizard(
         match action {
             StartWizardAction::Continue => {}
             StartWizardAction::Cancel => return Ok(None),
-            StartWizardAction::Submit(selection) => return Ok(Some(selection)),
+            StartWizardAction::Submit(selection) => return Ok(Some((*selection).clone())),
         }
     }
 }
@@ -175,7 +175,7 @@ fn safe_tui_size(width: u16, height: u16) -> bool {
 
 fn draw_unsafe_size_fallback(width: u16, height: u16, lang: UiLanguage) -> Result<()> {
     let mut stdout = io::stdout();
-    let lines = vec![
+    let lines = [
         tr(
             lang,
             "터미널 크기 안정화 중입니다. 자동 복구를 기다려주세요.",
@@ -311,7 +311,9 @@ fn draw_start_wizard(
         PresetPromptState::EnterName { ref buffer } => {
             let width = area.width.min(76);
             let height = 5;
-            let x = area.x.saturating_add((area.width.saturating_sub(width)) / 2);
+            let x = area
+                .x
+                .saturating_add((area.width.saturating_sub(width)) / 2);
             let y = area
                 .y
                 .saturating_add((area.height.saturating_sub(height)) / 2);
@@ -348,7 +350,9 @@ fn draw_start_wizard(
         PresetPromptState::ConfirmOverwrite { ref name } => {
             let width = area.width.min(76);
             let height = 5;
-            let x = area.x.saturating_add((area.width.saturating_sub(width)) / 2);
+            let x = area
+                .x
+                .saturating_add((area.width.saturating_sub(width)) / 2);
             let y = area
                 .y
                 .saturating_add((area.height.saturating_sub(height)) / 2);

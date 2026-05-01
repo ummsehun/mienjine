@@ -91,11 +91,11 @@ pub(crate) fn resolve_instance_morph_weights(
     for (instance_index, instance) in scene.mesh_instances.iter().enumerate() {
         let dst = &mut instance_morph_weights[instance_index];
         dst.clear();
-        if let Some(node_weights) = node_morph_weights.get(instance.node_index) {
-            if !node_weights.is_empty() {
-                dst.extend_from_slice(node_weights);
-                continue;
-            }
+        if let Some(node_weights) = node_morph_weights.get(instance.node_index)
+            && !node_weights.is_empty()
+        {
+            dst.extend_from_slice(node_weights);
+            continue;
         }
         if !instance.default_morph_weights.is_empty() {
             dst.extend_from_slice(&instance.default_morph_weights);

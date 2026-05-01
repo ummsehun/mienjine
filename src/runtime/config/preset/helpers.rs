@@ -17,9 +17,10 @@ pub fn validate_preset_name(input: &str) -> Result<String> {
     if trimmed.len() > PRESET_NAME_MAX_LEN {
         bail!("preset name must be <= {PRESET_NAME_MAX_LEN} characters")
     }
-    if !trimmed.chars().all(|ch| {
-        ch.is_ascii_alphanumeric() || matches!(ch, ' ' | '-' | '_' | '.')
-    }) {
+    if !trimmed
+        .chars()
+        .all(|ch| ch.is_ascii_alphanumeric() || matches!(ch, ' ' | '-' | '_' | '.'))
+    {
         bail!("preset name may contain only letters, numbers, space, '-', '_' and '.'")
     }
     Ok(trimmed.to_owned())

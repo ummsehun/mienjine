@@ -13,19 +13,27 @@ pub struct RenderId(pub u64);
 pub struct SessionId(pub u64);
 
 impl AssetId {
-    pub fn new(id: u64) -> Self { Self(id) }
+    pub fn new(id: u64) -> Self {
+        Self(id)
+    }
 }
 
 impl SceneId {
-    pub fn new(id: u64) -> Self { Self(id) }
+    pub fn new(id: u64) -> Self {
+        Self(id)
+    }
 }
 
 impl RenderId {
-    pub fn new(id: u64) -> Self { Self(id) }
+    pub fn new(id: u64) -> Self {
+        Self(id)
+    }
 }
 
 impl SessionId {
-    pub fn new(id: u64) -> Self { Self(id) }
+    pub fn new(id: u64) -> Self {
+        Self(id)
+    }
 }
 
 impl fmt::Display for AssetId {

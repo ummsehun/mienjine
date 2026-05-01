@@ -299,12 +299,12 @@ impl RasterPass {
     }
 
     fn matches(self, mode: MaterialAlphaMode) -> bool {
-        match (self, mode) {
-            (Self::Opaque, MaterialAlphaMode::Opaque) => true,
-            (Self::Mask, MaterialAlphaMode::Mask) => true,
-            (Self::Blend, MaterialAlphaMode::Blend) => true,
-            _ => false,
-        }
+        matches!(
+            (self, mode),
+            (Self::Opaque, MaterialAlphaMode::Opaque)
+                | (Self::Mask, MaterialAlphaMode::Mask)
+                | (Self::Blend, MaterialAlphaMode::Blend)
+        )
     }
 }
 

@@ -85,7 +85,7 @@ pub(super) fn from_scene(
 
             RigidBodyRuntime {
                 bone_index,
-                calc_method: rigid.calc_method.clone(),
+                calc_method: rigid.calc_method,
                 group: rigid.group,
                 un_collision_group_flag: rigid.un_collision_group_flag,
                 shape: rigid.form,

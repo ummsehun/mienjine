@@ -3,16 +3,16 @@ use std::{collections::HashMap, path::PathBuf};
 use crate::runtime::config::preset::{PresetStore, WizardPreset};
 
 use crate::scene::{
-    resolve_cell_aspect, AnsiQuantization, AudioReactiveMode, BrailleProfile, CameraAlignPreset,
-    CameraControlMode, CameraFocusMode, CameraMode, CellAspectMode, CenterLockMode,
-    CinematicCameraMode, ClarityProfile, ColorMode, ContrastProfile, DetailProfile,
-    GraphicsProtocol, PerfProfile, RenderBackend, RenderConfig, RenderMode, RenderOutputMode,
-    SyncPolicy, SyncSpeedMode, TextureSamplingMode, ThemeStyle,
+    AnsiQuantization, AudioReactiveMode, BrailleProfile, CameraAlignPreset, CameraControlMode,
+    CameraFocusMode, CameraMode, CellAspectMode, CenterLockMode, CinematicCameraMode,
+    ClarityProfile, ColorMode, ContrastProfile, DetailProfile, GraphicsProtocol, PerfProfile,
+    RenderBackend, RenderConfig, RenderMode, RenderOutputMode, SyncPolicy, SyncSpeedMode,
+    TextureSamplingMode, ThemeStyle, resolve_cell_aspect,
 };
 
 use crate::interfaces::tui::helpers::{
-    breakpoint_for, closest_u32_index, compute_duration_fit_factor, inspect_motion_duration,
-    MIN_HEIGHT, MIN_WIDTH, START_FPS_OPTIONS, SYNC_OFFSET_LIMIT_MS,
+    MIN_HEIGHT, MIN_WIDTH, START_FPS_OPTIONS, SYNC_OFFSET_LIMIT_MS, breakpoint_for,
+    closest_u32_index, compute_duration_fit_factor, inspect_motion_duration,
 };
 
 use super::super::types::{
@@ -20,9 +20,9 @@ use super::super::types::{
     StartWizardStep, UiBreakpoint,
 };
 
-use super::entry::StartEntry;
 #[cfg(feature = "gpu")]
 use super::converters::gpu_available_once;
+use super::entry::StartEntry;
 
 #[derive(Debug, Clone)]
 pub(crate) enum PresetPromptState {
@@ -433,5 +433,5 @@ impl StartWizardState {
 pub(crate) enum StartWizardAction {
     Continue,
     Cancel,
-    Submit(StartSelection),
+    Submit(Box<StartSelection>),
 }

@@ -358,7 +358,7 @@ impl StartWizardState {
 
     fn apply_confirm_key(&mut self, key: KeyEvent) -> StartWizardAction {
         match key.code {
-            KeyCode::Enter => StartWizardAction::Submit(self.selection()),
+            KeyCode::Enter => StartWizardAction::Submit(Box::new(self.selection())),
             KeyCode::Esc => {
                 self.step = StartWizardStep::AspectCalib;
                 StartWizardAction::Continue

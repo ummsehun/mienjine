@@ -2,6 +2,7 @@ use anyhow::Result;
 
 use crate::{
     cli::PreviewArgs,
+    interfaces::preview::run_preview_server,
     runtime::{
         asset_discovery::{discover_camera_vmds, resolve_camera_vmd_choice},
         options::RuntimeSyncProfileContext,
@@ -9,7 +10,6 @@ use crate::{
             SyncProfileMode, SyncProfileStore, build_profile_key, default_profile_store_path,
         },
     },
-    interfaces::preview::run_preview_server,
 };
 
 use super::config::load_runtime_config;

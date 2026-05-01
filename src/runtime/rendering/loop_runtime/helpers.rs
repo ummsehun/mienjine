@@ -1,6 +1,7 @@
 use anyhow::Result;
 
 use crate::{
+    interfaces::cli::terminal_interface::TerminalSession,
     renderer::FrameBuffers,
     runtime::{
         app::set_runtime_panic_state,
@@ -10,7 +11,6 @@ use crate::{
         KittyInternalResPreset, RenderConfig, RenderOutputMode, estimate_cell_aspect_from_window,
         kitty_internal_resolution,
     },
-    interfaces::cli::terminal_interface::TerminalSession,
 };
 
 pub(crate) fn set_runtime_panic_state_proxy(line: String) {

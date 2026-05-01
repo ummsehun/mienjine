@@ -1,6 +1,6 @@
 use glam::{Mat4, Quat, Vec3};
 
-use crate::engine::pmx_rig::types::{IKChain, PmxRigMeta};
+use crate::engine::pmx_rig::types::IKChain;
 
 /// Solve a single IK chain using CCD (Cyclic Coordinate Descent).
 ///

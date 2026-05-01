@@ -185,9 +185,7 @@ pub(crate) fn fill_background_ascii(
             let index = ((intensity * (BACKGROUND_ASCII.len() as f32 - 1.0)).round() as usize)
                 .min(BACKGROUND_ASCII.len() - 1);
             let dst = y * width + x;
-            frame.glyphs[dst] = if matches!(config.color_mode, ColorMode::Ansi) {
-                ' '
-            } else if detail >= 2 {
+            frame.glyphs[dst] = if matches!(config.color_mode, ColorMode::Ansi) || detail >= 2 {
                 ' '
             } else {
                 BACKGROUND_ASCII[index]
@@ -278,9 +276,7 @@ pub(crate) fn fill_background_braille(
             let index = ((base * (BACKGROUND_BRAILLE.len() as f32 - 1.0)).round() as usize)
                 .min(BACKGROUND_BRAILLE.len() - 1);
             let dst = y * width + x;
-            frame.glyphs[dst] = if matches!(config.color_mode, ColorMode::Ansi) {
-                ' '
-            } else if detail >= 2 {
+            frame.glyphs[dst] = if matches!(config.color_mode, ColorMode::Ansi) || detail >= 2 {
                 ' '
             } else {
                 BACKGROUND_BRAILLE[index]

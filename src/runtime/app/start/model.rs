@@ -1,16 +1,15 @@
 use anyhow::{Context, Result};
 
 use crate::{
-    assets::vmd_motion::parse_vmd_motion,
-    loader,
-    runtime::pmx_log,
-    interfaces::tui::start_ui::StartSelection,
-    scene::SceneCpu,
+    assets::vmd_motion::parse_vmd_motion, interfaces::tui::start_ui::StartSelection, loader,
+    runtime::pmx_log, scene::SceneCpu,
 };
 
 pub(super) fn load_selected_model(selection: &StartSelection) -> Result<SceneCpu> {
     match selection.branch {
-        crate::interfaces::tui::start_ui::ModelBranch::Glb => loader::load_gltf(&selection.glb_path),
+        crate::interfaces::tui::start_ui::ModelBranch::Glb => {
+            loader::load_gltf(&selection.glb_path)
+        }
         crate::interfaces::tui::start_ui::ModelBranch::PmxVmd => load_pmx_with_vmd(selection),
     }
 }

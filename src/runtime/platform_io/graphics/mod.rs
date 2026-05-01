@@ -126,10 +126,10 @@ static SHM_REGISTRY: OnceLock<Mutex<Option<ShmFrameBuffer>>> = OnceLock::new();
 static KITTY_STATE: OnceLock<Mutex<KittyGraphicsState>> = OnceLock::new();
 
 pub fn cleanup_shm_registry() {
-    if let Some(lock) = SHM_REGISTRY.get() {
-        if let Ok(mut guard) = lock.lock() {
-            let _ = guard.take();
-        }
+    if let Some(lock) = SHM_REGISTRY.get()
+        && let Ok(mut guard) = lock.lock()
+    {
+        let _ = guard.take();
     }
 }
 

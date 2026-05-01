@@ -1,7 +1,7 @@
 use super::*;
-use crate::interfaces::tui::helpers::{breakpoint_for, QUICK_RENDER_FIELD_COUNT};
+use crate::interfaces::tui::helpers::{QUICK_RENDER_FIELD_COUNT, breakpoint_for};
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
-use ratatui::{backend::TestBackend, Terminal};
+use ratatui::{Terminal, backend::TestBackend};
 
 fn key(code: KeyCode) -> StartWizardEvent {
     StartWizardEvent::Key(KeyEvent::new(code, KeyModifiers::NONE))

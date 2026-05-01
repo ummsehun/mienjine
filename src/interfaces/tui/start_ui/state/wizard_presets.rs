@@ -1,5 +1,8 @@
 use crate::runtime::config::{
-    camera::{parse_camera_align_preset, parse_camera_focus, parse_camera_mode, parse_center_lock_mode, parse_texture_sampling, parse_wasd_mode},
+    camera::{
+        parse_camera_align_preset, parse_camera_focus, parse_camera_mode, parse_center_lock_mode,
+        parse_texture_sampling, parse_wasd_mode,
+    },
     general::{parse_cell_aspect_mode, parse_contrast_profile},
     preset::{SavePresetResult, WizardPreset},
     sync::{parse_sync_policy, parse_sync_speed_mode},
@@ -12,18 +15,19 @@ use crate::runtime::config::{
 
 use crate::scene::ColorMode;
 
-use super::wizard::{PresetPromptState, StartWizardState};
-use super::super::types::{ModelBranch, RenderDetailMode};
+use super::super::types::ModelBranch;
 use super::converters::{
     ansi_quantization_to_text, audio_reactive_to_text, backend_to_text, braille_profile_to_text,
-    camera_align_preset_to_text, camera_focus_to_text, camera_mode_to_text, cell_aspect_mode_to_text,
-    center_lock_mode_to_text, cinematic_camera_to_text, clarity_profile_to_text, color_mode_to_text,
-    contrast_profile_to_text, detail_profile_to_text, graphics_protocol_to_text, mode_to_text,
-    output_mode_to_text, parse_mode_text, parse_render_detail_mode_text, perf_profile_to_text,
-    render_detail_mode_to_text, sync_policy_to_text, sync_speed_mode_to_text,
-    texture_sampling_to_text, theme_style_to_text, wasd_mode_to_text,
+    camera_align_preset_to_text, camera_focus_to_text, camera_mode_to_text,
+    cell_aspect_mode_to_text, center_lock_mode_to_text, cinematic_camera_to_text,
+    clarity_profile_to_text, color_mode_to_text, contrast_profile_to_text, detail_profile_to_text,
+    graphics_protocol_to_text, mode_to_text, output_mode_to_text, parse_mode_text,
+    parse_render_detail_mode_text, perf_profile_to_text, render_detail_mode_to_text,
+    sync_policy_to_text, sync_speed_mode_to_text, texture_sampling_to_text, theme_style_to_text,
+    wasd_mode_to_text,
 };
-use crate::interfaces::tui::helpers::{closest_u32_index, START_FPS_OPTIONS, SYNC_OFFSET_LIMIT_MS};
+use super::wizard::{PresetPromptState, StartWizardState};
+use crate::interfaces::tui::helpers::{START_FPS_OPTIONS, SYNC_OFFSET_LIMIT_MS, closest_u32_index};
 
 impl StartWizardState {
     pub(crate) fn reload_preset_names(&mut self) {
@@ -170,7 +174,10 @@ impl StartWizardState {
             .and_then(|path| path.file_name())
             .and_then(|name| name.to_str())
             .map(str::to_owned);
-        preset.assets.stage_name = selection.stage_choice.as_ref().map(|stage| stage.name.clone());
+        preset.assets.stage_name = selection
+            .stage_choice
+            .as_ref()
+            .map(|stage| stage.name.clone());
         preset.assets.camera_name = selection
             .camera_vmd_path
             .as_deref()
@@ -208,7 +215,8 @@ impl StartWizardState {
         preset.visual.contrast_profile = contrast_profile_to_text(selection.contrast_profile);
         preset.visual.font_preset_enabled = selection.apply_font_preset;
         preset.visual.camera_mode = camera_mode_to_text(selection.camera_mode);
-        preset.visual.camera_align_preset = camera_align_preset_to_text(selection.camera_align_preset);
+        preset.visual.camera_align_preset =
+            camera_align_preset_to_text(selection.camera_align_preset);
         preset.visual.camera_unit_scale = selection.camera_unit_scale;
 
         preset.sync.fps_cap = selection.fps_cap;
@@ -249,7 +257,8 @@ impl StartWizardState {
         self.texture_sampling = parse_texture_sampling(&preset.visual.texture_sampling);
         self.model_lift = preset.visual.model_lift.clamp(0.02, 0.45);
         self.edge_accent_strength = preset.visual.edge_accent_strength.clamp(0.0, 1.5);
-        self.braille_aspect_compensation = preset.visual.braille_aspect_compensation.clamp(0.70, 1.30);
+        self.braille_aspect_compensation =
+            preset.visual.braille_aspect_compensation.clamp(0.70, 1.30);
         self.stage_level = preset.visual.stage_level.min(4);
         self.stage_reactive = preset.visual.stage_reactive;
         self.manual_cell_aspect = preset.visual.manual_cell_aspect;
@@ -299,25 +308,37 @@ impl StartWizardState {
                 self.model_index = index;
             }
         }
-        if let Some(ref name) = preset.assets.motion_name {
-            if let Some(index) = self.motion_entries.iter().position(|entry| entry.name == *name) {
-                self.motion_index = index + 1;
-            }
+        if let Some(ref name) = preset.assets.motion_name
+            && let Some(index) = self
+                .motion_entries
+                .iter()
+                .position(|entry| entry.name == *name)
+        {
+            self.motion_index = index + 1;
         }
-        if let Some(ref name) = preset.assets.music_name {
-            if let Some(index) = self.music_entries.iter().position(|entry| entry.name == *name) {
-                self.music_index = index + 1;
-            }
+        if let Some(ref name) = preset.assets.music_name
+            && let Some(index) = self
+                .music_entries
+                .iter()
+                .position(|entry| entry.name == *name)
+        {
+            self.music_index = index + 1;
         }
-        if let Some(ref name) = preset.assets.stage_name {
-            if let Some(index) = self.stage_entries.iter().position(|entry| entry.name == *name) {
-                self.stage_index = index + 1;
-            }
+        if let Some(ref name) = preset.assets.stage_name
+            && let Some(index) = self
+                .stage_entries
+                .iter()
+                .position(|entry| entry.name == *name)
+        {
+            self.stage_index = index + 1;
         }
-        if let Some(ref name) = preset.assets.camera_name {
-            if let Some(index) = self.camera_entries.iter().position(|entry| entry.name == *name) {
-                self.camera_index = index + 1;
-            }
+        if let Some(ref name) = preset.assets.camera_name
+            && let Some(index) = self
+                .camera_entries
+                .iter()
+                .position(|entry| entry.name == *name)
+        {
+            self.camera_index = index + 1;
         }
     }
 }
