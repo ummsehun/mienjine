@@ -1,6 +1,6 @@
 mod app_impl;
 
-pub use self::app_impl::run;
+pub use self::app_impl::{run, setup_panic_hook};
 pub(crate) use self::app_impl::{
     apply_runtime_render_tuning, load_runtime_config, resolve_animation_index,
 };

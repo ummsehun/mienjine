@@ -136,8 +136,8 @@ pub(crate) fn prepare_audio_sync(
     let speed_factor =
         compute_animation_speed_factor(clip_duration_secs, playback.duration_secs, mode);
     if matches!(mode, SyncSpeedMode::AutoDurationFit) && (speed_factor - 1.0).abs() > 1e-4 {
-        eprintln!(
-            "info: audio sync speed factor applied {:.4} (clip={:?}s, audio={:?}s)",
+        tracing::info!(
+            "audio sync speed factor applied {:.4} (clip={:?}s, audio={:?}s)",
             speed_factor, clip_duration_secs, playback.duration_secs
         );
     }

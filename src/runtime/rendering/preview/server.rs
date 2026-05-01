@@ -75,7 +75,7 @@ pub fn run_preview_server(
         started: Instant::now(),
         seq: AtomicU64::new(0),
     });
-    println!(
+    tracing::info!(
         "preview server running: http://127.0.0.1:{}/  (Ctrl+C to stop)",
         args.port
     );

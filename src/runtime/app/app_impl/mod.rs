@@ -1,6 +1,7 @@
 use std::time::{Duration, Instant};
 
 use anyhow::{Result, bail};
+use tracing;
 
 use crate::{
     assets::vmd_motion::parse_vmd_motion,
@@ -43,6 +44,7 @@ pub(crate) use config::{
     apply_runtime_render_tuning, load_runtime_config, persist_sync_profile_offset,
 };
 pub(crate) use panic_state::set_runtime_panic_state;
+pub use panic_state::setup_panic_hook;
 
 use common::{load_scene_for_bench, load_scene_for_run};
 use panic_state::install_runtime_panic_hook_once;
@@ -52,7 +54,7 @@ pub fn run(cli: Cli) -> Result<()> {
     install_runtime_panic_hook_once();
     let cleaned = cleanup_orphan_shm_files();
     if cleaned > 0 {
-        eprintln!("info: cleaned {cleaned} orphan kitty shm buffer(s)");
+        tracing::info!("cleaned {cleaned} orphan kitty shm buffer(s)");
     }
     match cli.command {
         Commands::Start(args) => start(args),
@@ -107,8 +109,8 @@ fn run_interactive(args: RunArgs) -> Result<()> {
                 Ok(vmd) => {
                     let clip = vmd.to_clip_for_scene(&scene);
                     if clip.channels.is_empty() {
-                        eprintln!(
-                            "warning: VMD clip has no matched channels; bone/morph names may not match this PMX."
+                        tracing::warn!(
+                            "VMD clip has no matched channels; bone/morph names may not match this PMX."
                         );
                     }
                     scene.animations.push(clip);
@@ -119,8 +121,8 @@ fn run_interactive(args: RunArgs) -> Result<()> {
                     };
                 }
                 Err(err) => {
-                    eprintln!(
-                        "warning: failed to parse PMX motion VMD {}: {err}",
+                    tracing::warn!(
+                        "failed to parse PMX motion VMD {}: {err}",
                         motion_path.display()
                     );
                 }
@@ -141,7 +143,7 @@ fn run_interactive(args: RunArgs) -> Result<()> {
                             scene = merge_scenes(scene, stage_scene);
                         }
                         Err(err) => {
-                            eprintln!("warning: failed to load stage {}: {err}", path.display());
+                            tracing::warn!("failed to load stage {}: {err}", path.display());
                         }
                     }
                 }
@@ -157,8 +159,8 @@ fn run_interactive(args: RunArgs) -> Result<()> {
                 );
             }
             StageStatus::Invalid => {
-                eprintln!(
-                    "warning: selected stage '{}' is invalid. running without stage.",
+                tracing::warn!(
+                    "selected stage '{}' is invalid. running without stage.",
                     stage_choice.name
                 );
             }
@@ -189,14 +191,14 @@ fn run_interactive(args: RunArgs) -> Result<()> {
         sync.sync_speed_mode,
     );
     if args.music.is_some() && audio_sync.is_none() {
-        eprintln!("warning: audio playback unavailable. continuing in silent mode.");
+        tracing::warn!("audio playback unavailable. continuing in silent mode.");
     }
 
     if matches!(args.scene, RunSceneArg::Pmx)
         && args.motion_vmd.is_some()
         && animation_index.is_none()
     {
-        eprintln!("warning: no animation clip was selected after PMX+VMD import.");
+        tracing::warn!("no animation clip was selected after PMX+VMD import.");
     }
 
     run_scene_interactive(
