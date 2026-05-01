@@ -86,12 +86,12 @@ pub(crate) fn update_camera_director(
 
     state.jitter_phase += 0.09;
     let jitter_gain = match mode {
-        CinematicCameraMode::On => 1.0,
-        CinematicCameraMode::Aggressive => 1.7,
+        CinematicCameraMode::On => 0.15,
+        CinematicCameraMode::Aggressive => 0.4,
         CinematicCameraMode::Off => 0.0,
     };
     let jitter = (state.jitter_phase * 0.8).sin()
-        * 0.015
+        * 0.008
         * smoothed_energy
         * reactive_gain
         * jitter_gain

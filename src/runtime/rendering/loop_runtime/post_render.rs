@@ -66,8 +66,11 @@ fn update_camera_tracking(
             state.track_lost_streak = 0;
         }
 
+        let vmd_active = state.loaded_camera_track.is_some()
+            && !matches!(state.runtime_camera.active_track_mode, crate::scene::CameraMode::Off);
+
         let centroid = stats.subject_centroid_px.or(stats.visible_centroid_px);
-        if state.center_lock_enabled {
+        if state.center_lock_enabled && !vmd_active {
             if let Some((cx, cy)) = centroid {
                 let fw = f32::from(state.frame.width.max(1));
                 let fh = f32::from(state.frame.height.max(1));

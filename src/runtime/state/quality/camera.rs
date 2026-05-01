@@ -64,11 +64,11 @@ impl CenterLockState {
 
         let large_error = dead_x.abs() > 0.35 || dead_y.abs() > 0.35;
         if large_error {
-            self.err_x_ema = dead_x;
-            self.err_y_ema = dead_y;
+            self.err_x_ema = self.err_x_ema * 0.7 + dead_x * 0.3;
+            self.err_y_ema = self.err_y_ema * 0.7 + dead_y * 0.3;
         } else {
-            self.err_x_ema += (dead_x - self.err_x_ema) * 0.28;
-            self.err_y_ema += (dead_y - self.err_y_ema) * 0.28;
+            self.err_x_ema += (dead_x - self.err_x_ema) * 0.15;
+            self.err_y_ema += (dead_y - self.err_y_ema) * 0.15;
         }
 
         let extent = extent_y.max(0.5);

@@ -187,6 +187,7 @@ pub(crate) fn compute_animation_time(
     let hard_snap_sec = (hard_snap_ms as f32 / 1000.0).clamp(0.005, 5.0);
     let kp = sync_kp.clamp(0.01, 1.0);
     let dt = dt_wall.max(0.0);
+    let dt_min = dt.max(1.0 / 120.0);
 
     let target_audio = elapsed_audio.map(|seconds| seconds * speed_factor + offset);
 
@@ -196,7 +197,7 @@ pub(crate) fn compute_animation_time(
                 state.anim_time = elapsed_wall + offset;
                 state.initialized = true;
             } else {
-                state.anim_time += dt;
+                state.anim_time += dt_min;
             }
             state.drift_ema *= 0.92;
         }
@@ -221,7 +222,7 @@ pub(crate) fn compute_animation_time(
                         let drift_gain = (state.drift_ema / hard_snap_sec).clamp(0.0, 1.0);
                         let long_drift_term = (err * 0.18 * drift_gain).clamp(-0.16, 0.16);
                         let rate = (speed_factor + kp * err + long_drift_term).clamp(0.25, 4.0);
-                        state.anim_time += dt * rate;
+                        state.anim_time += dt_min * rate;
                     }
                 }
             } else {
